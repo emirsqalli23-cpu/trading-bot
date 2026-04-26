@@ -1,0 +1,31 @@
+name: ICT Trading Bot 24/7
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Run ICT bot
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python3 bot_cloud.py
+
+      - name: Sauvegarder l'état
+        run: |
+          git config user.name  "ICT Bot"
+          git config user.email "bot@trading.local"
+          git add state/state.json
+          git diff --cached --quiet || git commit -m "bot: state update $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push

@@ -1,0 +1,15 @@
+{
+  "capital": 980.0,
+  "positions": {
+    "XBTUSD": {
+      "direction": "LONG",
+      "entry": 77356.2,
+      "sl": 77061.2843,
+      "tp1": 78690.1,
+      "rr1": 4.52,
+      "risk_amount": 20.0
+    }
+  },
+  "trades": [],
+  "timestamp": "2026-04-26T11:29:14.190212+00:00"
+}
