@@ -2,13 +2,20 @@ name: ICT Trading Bot 24/7
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
-  workflow_dispatch:
+    - cron: '*/5 * * * *'   # toutes les 5 min
+  push:
+    paths:
+      - 'state/state.json'  # auto-relance apres chaque mise a jour
+  workflow_dispatch:        # lancement manuel
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     timeout-minutes: 4
+    # Eviter les boucles infinies : max 1 run simultane
+    concurrency:
+      group: trading-bot
+      cancel-in-progress: false
 
     permissions:
       contents: write
@@ -22,7 +29,7 @@ jobs:
           NTFY_TOPIC: nice-lens-ogc-emir
         run: python3 bot_cloud.py
 
-      - name: Sauvegarder l'état
+      - name: Sauvegarder l'etat
         run: |
           git config user.name  "ICT Bot"
           git config user.email "bot@trading.local"
