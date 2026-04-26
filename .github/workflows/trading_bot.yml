@@ -19,7 +19,7 @@ jobs:
 
       - name: Run ICT bot
         env:
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NTFY_TOPIC: nice-lens-ogc-emir
         run: python3 bot_cloud.py
 
       - name: Sauvegarder l'état
