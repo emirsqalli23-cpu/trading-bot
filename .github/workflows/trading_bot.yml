@@ -2,23 +2,28 @@ name: ICT Trading Bot 24/7
 
 on:
   schedule:
-    - cron: '*/5 * * * *'   # toutes les 5 min
+    - cron: '*/15 * * * *'   # fallback cron (souvent throttle par GitHub)
   push:
     paths:
-      - 'state/state.json'  # auto-relance apres chaque mise a jour
-  workflow_dispatch:        # lancement manuel
+      - 'state/state.json'
+  workflow_dispatch:           # peut etre declenche par lui-meme via PAT
+    inputs:
+      chain:
+        description: 'Chained run from previous instance'
+        required: false
+        default: 'no'
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
-    # Eviter les boucles infinies : max 1 run simultane
+    timeout-minutes: 8
     concurrency:
       group: trading-bot
       cancel-in-progress: false
 
     permissions:
       contents: write
+      actions: write
 
     steps:
       - name: Checkout repo
@@ -36,3 +41,17 @@ jobs:
           git add state/state.json
           git diff --cached --quiet || git commit -m "bot: state update $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
+
+      - name: Attendre 5 minutes
+        run: sleep 290
+
+      - name: Auto-trigger prochain run
+        env:
+          PAT: ${{ secrets.REPO_PAT }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $PAT" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/trading_bot.yml/dispatches \
+            -d '{"ref":"main","inputs":{"chain":"yes"}}'
+          echo "✅ Prochain run declenche"
