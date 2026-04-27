@@ -1,15 +1,13 @@
 {
   "capital": 980.0,
-  "positions": {
-    "XBTUSD": {
-      "direction": "LONG",
-      "entry": 77356.2,
-      "sl": 77061.2843,
-      "tp1": 78690.1,
-      "rr1": 4.52,
-      "risk_amount": 20.0
+  "positions": {},
+  "trades": [
+    {
+      "symbol": "BTC/USD",
+      "type": "SL",
+      "pnl": -20.0,
+      "time": "2026-04-27T17:51:13.173463+00:00"
     }
-  },
-  "trades": [],
-  "timestamp": "2026-04-27T13:09:23.224176+00:00"
+  ],
+  "timestamp": "2026-04-27T17:51:14.517704+00:00"
 }
