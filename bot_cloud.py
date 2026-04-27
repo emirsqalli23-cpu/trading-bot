@@ -56,6 +56,7 @@ def notify(title, message, priority=4, tags=None):
 
 # ── KRAKEN OHLCV (urllib, pas de dépendances) ─────────────────────────────
 def fetch_ohlcv(pair, interval, count=100):
+    """interval : 60=1h, 240=4h, 5=5m"""
     url = f"https://api.kraken.com/0/public/OHLC?pair={pair}&interval={interval}"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     resp = urllib.request.urlopen(req, timeout=15).read()
@@ -75,7 +76,7 @@ def get_price(pair):
     result_key = list(data["result"].keys())[0]
     return float(data["result"][result_key]["c"][0])
 
-# ── ANALYSE ICT ───────────────────────────────────────────────────────────
+# ── ANALYSE ICT (simplifié, sans pandas/ta) ───────────────────────────────
 def market_structure(candles, n=20):
     recent = candles[-n:]
     highs  = [c["high"]  for c in recent]
@@ -155,6 +156,7 @@ def run():
 
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Capital: {capital:.2f}$ | Positions: {list(positions.keys())}")
 
+    # 1. Gérer les positions existantes
     for sym in list(positions.keys()):
         pos = positions[sym]
         try:
@@ -167,11 +169,12 @@ def run():
 
             if hit_sl:
                 pnl      = -pos["risk_amount"]
+                capital += 0
                 trades.append({"symbol": nice, "type": "SL", "pnl": pnl,
                                 "time": datetime.now(timezone.utc).isoformat()})
                 del positions[sym]
-                notify(f"🔴 STOP-LOSS {nice}",
-                       f"Prix: {price:.2f}$ | Perte: {pnl:.2f}$ | Capital: {capital:.2f}$",
+                notify(f"❌ Pari perdu sur {nice}",
+                       f"Le bot s'est trompé sur la direction.\nPerte : {abs(pnl):.0f}$ (comme prévu, c'est normal)\nArgent restant : {capital:.0f}$",
                        priority=4, tags=["x"])
                 print(f"🔴 SL {nice} | PnL: {pnl:.2f}$")
 
@@ -181,8 +184,8 @@ def run():
                 trades.append({"symbol": nice, "type": "TP", "pnl": pnl,
                                 "time": datetime.now(timezone.utc).isoformat()})
                 del positions[sym]
-                notify(f"🟢 TAKE-PROFIT {nice}",
-                       f"Prix: {price:.2f}$ | Gain: +{pnl:.2f}$ | Capital: {capital:.2f}$",
+                notify(f"✅ Pari gagné sur {nice} 💰",
+                       f"Le bot avait raison !\nGain : +{pnl:.0f}$ (soit le double de la mise)\nArgent total : {capital:.0f}$",
                        priority=5, tags=["white_check_mark", "moneybag"])
                 print(f"🟢 TP {nice} | PnL: +{pnl:.2f}$")
             else:
@@ -190,6 +193,7 @@ def run():
         except Exception as e:
             print(f"⚠️ Erreur gestion {sym}: {e}")
 
+    # 2. Chercher nouveaux setups
     for sym in SYMBOLS:
         nice = SYMBOLS_NICE.get(sym, sym)
         if sym in positions or len(positions) >= MAX_POSITIONS:
@@ -203,6 +207,8 @@ def run():
             s_h1 = market_structure(c_h1, n=12)
             mss  = check_mss(c_m5)
             ob_bull, ob_bear = find_ob(c_h1)
+
+            price = c_h4[-1]["close"]
 
             if s_h4["trend"] == "BULLISH" and s_h1["trend"] == "BULLISH":
                 bias = "LONG"
@@ -234,9 +240,10 @@ def run():
                 "rr1":         plan["rr1"],
                 "risk_amount": risk_amount,
             }
+            direction_fr = "va monter 📈" if bias == "LONG" else "va baisser 📉"
             notify(
-                f"🟢 LONG OUVERT {nice}" if bias == "LONG" else f"🔴 SHORT OUVERT {nice}",
-                f"Entrée: {plan['entry']:.2f}$ | SL: {plan['sl']:.2f}$ | TP1: {plan['tp1']:.2f}$ | R:R: {plan['rr1']}",
+                f"🎯 Nouveau pari lancé sur {nice}",
+                f"Le bot pense que {nice} {direction_fr}\nMise : {risk_amount:.0f}$ (si ça rate, tu perds ça)\nSi ça marche : +{round(risk_amount * plan['rr1']):.0f}$",
                 priority=4, tags=["rocket" if bias == "LONG" else "chart_with_downwards_trend"]
             )
             print(f"✅ POSITION OUVERTE {nice} {bias} | Risque: {risk_amount:.2f}$")
@@ -244,6 +251,7 @@ def run():
         except Exception as e:
             print(f"⚠️ Erreur analyse {sym}: {e}")
 
+    # 3. Sauvegarder
     state["capital"]   = capital
     state["positions"] = positions
     state["trades"]    = trades
