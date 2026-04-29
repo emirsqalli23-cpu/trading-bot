@@ -1,0 +1,17 @@
+name: Bilan Quotidien
+
+on:
+  schedule:
+    - cron: '0 19 * * *'   # 19h UTC = 21h Paris (heure d'ete)
+  workflow_dispatch:
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Envoyer le bilan
+        env:
+          NTFY_TOPIC: nice-lens-ogc-emir
+        run: python3 daily_summary.py
