@@ -1,0 +1,63 @@
+name: ICT Bot FOREX
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  push:
+    paths:
+      - 'state/state_forex.json'
+  workflow_dispatch:
+    inputs:
+      chain:
+        description: 'Chained run from previous instance'
+        required: false
+        default: 'no'
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    concurrency:
+      group: trading-bot-forex
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Run ICT bot FOREX
+        id: bot
+        continue-on-error: true
+        env:
+          NTFY_TOPIC: nice-lens-ogc-emir
+          MARKET: forex
+        run: python3 bot_cloud.py
+
+      - name: Sauvegarder l'etat
+        if: always()
+        continue-on-error: true
+        run: |
+          git config user.name  "ICT Bot FOREX"
+          git config user.email "bot-forex@trading.local"
+          git pull --rebase || true
+          git add state/state_forex.json || true
+          git diff --cached --quiet || git commit -m "bot forex: state $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push || true
+
+      - name: Attendre 5 minutes
+        if: always()
+        run: sleep 290
+
+      - name: Auto-trigger prochain run
+        if: always()
+        env:
+          PAT: ${{ secrets.REPO_PAT }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $PAT" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/forex_bot.yml/dispatches \
+            -d '{"ref":"main","inputs":{"chain":"yes"}}'
+          echo "Prochain run forex declenche"
