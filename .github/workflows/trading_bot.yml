@@ -1,11 +1,11 @@
-name: ICT Trading Bot 24/7
+name: ICT Bot CRYPTO
 
 on:
   schedule:
-    - cron: '*/10 * * * *'   # secours toutes les 10 min si la chaine casse
+    - cron: '*/10 * * * *'
   push:
     paths:
-      - 'state/state.json'
+      - 'state/state_crypto.json'
   workflow_dispatch:
     inputs:
       chain:
@@ -18,22 +18,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     concurrency:
-      group: trading-bot
+      group: trading-bot-crypto
       cancel-in-progress: false
-
     permissions:
       contents: write
       actions: write
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Run ICT bot
         id: bot
-        continue-on-error: true   # ne pas casser la chaine si erreur Python
+        continue-on-error: true
         env:
           NTFY_TOPIC: nice-lens-ogc-emir
+          MARKET: crypto
         run: python3 bot_cloud.py
 
       - name: Sauvegarder l'etat
@@ -42,8 +41,9 @@ jobs:
         run: |
           git config user.name  "ICT Bot"
           git config user.email "bot@trading.local"
-          git add state/state.json || true
-          git diff --cached --quiet || git commit -m "bot: state update $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git pull --rebase || true
+          git add state/state_crypto.json || true
+          git diff --cached --quiet || git commit -m "bot crypto: state $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push || true
 
       - name: Attendre 5 minutes
@@ -51,7 +51,7 @@ jobs:
         run: sleep 290
 
       - name: Auto-trigger prochain run
-        if: always()           # CLE : toujours relancer la chaine, meme apres erreur
+        if: always()
         env:
           PAT: ${{ secrets.REPO_PAT }}
         run: |
@@ -60,4 +60,4 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/actions/workflows/trading_bot.yml/dispatches \
             -d '{"ref":"main","inputs":{"chain":"yes"}}'
-          echo "Prochain run declenche"
+          echo "Prochain run crypto declenche"
