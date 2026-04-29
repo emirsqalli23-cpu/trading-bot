@@ -1,0 +1,63 @@
+name: ICT Bot OR
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  push:
+    paths:
+      - 'state/state_gold.json'
+  workflow_dispatch:
+    inputs:
+      chain:
+        description: 'Chained run from previous instance'
+        required: false
+        default: 'no'
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    concurrency:
+      group: trading-bot-gold
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Run ICT bot OR
+        id: bot
+        continue-on-error: true
+        env:
+          NTFY_TOPIC: nice-lens-ogc-emir
+          MARKET: gold
+        run: python3 bot_cloud.py
+
+      - name: Sauvegarder l'etat
+        if: always()
+        continue-on-error: true
+        run: |
+          git config user.name  "ICT Bot OR"
+          git config user.email "bot-gold@trading.local"
+          git pull --rebase || true
+          git add state/state_gold.json || true
+          git diff --cached --quiet || git commit -m "bot or: state $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push || true
+
+      - name: Attendre 5 minutes
+        if: always()
+        run: sleep 290
+
+      - name: Auto-trigger prochain run
+        if: always()
+        env:
+          PAT: ${{ secrets.REPO_PAT }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $PAT" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/gold_bot.yml/dispatches \
+            -d '{"ref":"main","inputs":{"chain":"yes"}}'
+          echo "Prochain run or declenche"
