@@ -167,3 +167,72 @@ def has_correlated_position(symbol, direction, current_positions):
             if current_positions[corr_sym]["direction"] == direction:
                 return True, corr_sym
     return False, None
+
+# ── 7) LIMITE DE PERTE QUOTIDIENNE ────────────────────────────────────────
+DAILY_LOSS_LIMIT_PCT = 0.03  # -3% par jour max
+
+def daily_loss_exceeded(state, capital_start=1000.0):
+    """
+    Calcule la perte du jour (depuis 00h UTC). Renvoie (True, perte_pct) si > 3%.
+    Empêche d'ouvrir de nouveaux trades pour le reste de la journée.
+    """
+    trades = state.get("trades", [])
+    today = datetime.now(timezone.utc).date().isoformat()
+    today_pnl = sum(
+        t["pnl"] for t in trades
+        if t.get("time", "").startswith(today)
+    )
+    today_pnl_pct = today_pnl / capital_start
+    if today_pnl_pct <= -DAILY_LOSS_LIMIT_PCT:
+        return True, round(today_pnl_pct * 100, 2)
+    return False, round(today_pnl_pct * 100, 2)
+
+# ── 8) KILLZONES ICT (heures où les institutions tradent) ─────────────────
+def in_killzone(market="forex"):
+    """
+    Killzones ICT = heures où 80% des mouvements rentables se produisent :
+    - Londres Open : 7h-10h UTC
+    - NY Open      : 12h-15h UTC
+    - NY PM        : 18h-20h UTC (parfois)
+
+    Crypto trade 24/7 mais accepte aussi ces fenêtres + les pics asiatiques.
+    Renvoie (True/False, nom_de_killzone).
+    """
+    now = datetime.now(timezone.utc)
+    h = now.hour
+
+    if 7 <= h < 10:    return True, "Killzone Londres Open"
+    if 12 <= h < 15:   return True, "Killzone NY Open"
+    if 18 <= h < 20:   return True, "Killzone NY PM"
+
+    # Crypto a une killzone Asia en plus
+    if market == "crypto" and 0 <= h < 3:
+        return True, "Killzone Asia"
+
+    return False, None
+
+# ── 9) BIAS DAILY (D1) — ne trader que dans le sens de la grosse tendance ─
+def daily_bias(d1_candles):
+    """
+    Détermine la tendance Daily : BULLISH / BEARISH / NEUTRAL.
+    Basé sur EMA50 D1 + position du dernier close.
+    """
+    if not d1_candles or len(d1_candles) < 50:
+        return "NEUTRAL"
+    closes = [c["close"] for c in d1_candles]
+    # EMA 50
+    ema = closes[0]
+    k = 2 / 51
+    for c in closes[1:]:
+        ema = c * k + ema * (1 - k)
+    last = closes[-1]
+    # Marge de 0.5% pour éviter les zones de range
+    if last > ema * 1.005:  return "BULLISH"
+    if last < ema * 0.995:  return "BEARISH"
+    return "NEUTRAL"
+
+def aligned_with_daily(direction, d1_bias):
+    """Le trade est-il dans le sens de la tendance Daily ?"""
+    if d1_bias == "NEUTRAL": return True  # neutre = OK les 2 sens
+    return (direction == "LONG" and d1_bias == "BULLISH") or \
+           (direction == "SHORT" and d1_bias == "BEARISH")

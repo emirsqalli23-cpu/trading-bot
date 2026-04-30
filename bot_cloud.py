@@ -34,6 +34,7 @@ try:
     from trade_manager import (
         maybe_set_breakeven, maybe_take_partial, update_trailing_stop,
         compute_atr, adjust_risk_by_atr, in_active_session, has_correlated_position,
+        daily_loss_exceeded, in_killzone, daily_bias, aligned_with_daily,
     )
     TM_OK = True
 except Exception as _e:
@@ -355,6 +356,38 @@ def run():
             save_state(state)
             return
 
+        # FEATURE 1 : limite de perte quotidienne
+        loss_blocked, today_pct = daily_loss_exceeded(state, CAPITAL_START)
+        if loss_blocked:
+            msg = f"-{abs(today_pct)}% sur la journée — pause jusqu'à demain"
+            print(f"🛑 {msg}")
+            if not state.get("daily_lock_notified"):
+                notify(f"🛑 Pause journée [{LABEL}]",
+                       f"Le bot a perdu {today_pct}% aujourd'hui.\nIl arrête les nouveaux trades jusqu'à demain pour protéger le capital.",
+                       priority=4, tags=["octagonal_sign"])
+                state["daily_lock_notified"] = True
+            state["capital"]   = capital
+            state["positions"] = positions
+            state["trades"]    = trades
+            save_state(state)
+            return
+        # Reset le flag à minuit
+        if state.get("daily_lock_notified") and today_pct > -1:
+            state["daily_lock_notified"] = False
+
+        # FEATURE 2 : Killzones ICT
+        in_kz, kz_name = in_killzone(MARKET)
+        if not in_kz:
+            now_h = datetime.now(timezone.utc).hour
+            print(f"⏰ Hors killzone ({now_h}h UTC) — pas de nouveau trade")
+            state["capital"]   = capital
+            state["positions"] = positions
+            state["trades"]    = trades
+            save_state(state)
+            return
+        else:
+            print(f"🎯 {kz_name} active — analyse des setups")
+
     for sym in SYMBOLS:
         nice = SYMBOLS_NICE.get(sym, sym)
         if sym in positions or len(positions) >= MAX_POSITIONS:
@@ -374,6 +407,21 @@ def run():
             c_h1 = fetch_candles(sym, "H1")
             c_m5 = fetch_candles(sym, "M5")
 
+            # FEATURE 3 : tendance Daily (D1)
+            d1_trend = "NEUTRAL"
+            if TM_OK and DATA_SOURCE == "yahoo":
+                try:
+                    c_d1 = fetch_yahoo(sym, "1d", "200d", 100)
+                    d1_trend = daily_bias(c_d1)
+                except Exception as _e:
+                    print(f"  ↪ D1 fetch KO: {_e}")
+            elif TM_OK and DATA_SOURCE == "kraken":
+                try:
+                    c_d1 = fetch_kraken(sym, 1440, 100)  # 1440 min = 1d Kraken
+                    d1_trend = daily_bias(c_d1)
+                except Exception as _e:
+                    print(f"  ↪ D1 fetch KO: {_e}")
+
             s_h4 = market_structure(c_h4)
             s_h1 = market_structure(c_h1, n=12)
             mss  = check_mss(c_m5)
@@ -386,6 +434,13 @@ def run():
             else:
                 print(f"⏸ {nice} | H4:{s_h4['trend']} H1:{s_h1['trend']} → WAIT")
                 continue
+
+            # FEATURE 3 (bis) : refuser si pas aligné avec la tendance D1
+            if TM_OK and not aligned_with_daily(bias, d1_trend):
+                print(f"🚫 {nice} | {bias} contre tendance D1 ({d1_trend}) → SKIP")
+                continue
+            if d1_trend != "NEUTRAL":
+                print(f"  ✓ Aligné avec D1 ({d1_trend})")
 
             expected_mss = "BULLISH_MSS" if bias == "LONG" else "BEARISH_MSS"
             if mss != expected_mss:

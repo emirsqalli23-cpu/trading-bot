@@ -33,6 +33,7 @@ jobs:
         env:
           NTFY_TOPIC: nice-lens-ogc-emir
           MARKET: forex
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python3 bot_cloud.py
 
       - name: Sauvegarder l'etat

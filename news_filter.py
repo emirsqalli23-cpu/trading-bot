@@ -8,9 +8,13 @@ News Filter - protège le bot contre les news imprévues.
 3. Détection "shock" : ferme positions si news catastrophique
 """
 
-import json, urllib.request, time
+import json, os, urllib.request, time
 from datetime import datetime, timezone, timedelta
 from xml.etree import ElementTree as ET
+
+# Cle Gemini optionnelle (free tier 1500 req/jour)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+USE_LLM = bool(GEMINI_API_KEY)
 
 # ── Mapping devise <-> mots clefs (pour matcher news avec position) ───────
 CURRENCY_KEYWORDS = {
@@ -118,6 +122,8 @@ def fetch_recent_news(max_age_minutes=15):
 def detect_shock(symbol, max_age_minutes=10):
     """
     Détecte une news "shock" récente concernant la devise du symbole.
+    1) Filtre keywords (rapide, gratuit)
+    2) Si LLM dispo (Gemini API) : analyse + précise pour limiter faux positifs
     Renvoie (True, titre) si trouvé.
     """
     currencies = symbol_to_currencies(symbol)
@@ -126,13 +132,64 @@ def detect_shock(symbol, max_age_minutes=10):
         keywords.extend(CURRENCY_KEYWORDS.get(cur, []))
 
     news = fetch_recent_news(max_age_minutes)
+    suspects = []
     for item in news:
         title_lower = item["title"].lower()
         cur_match   = any(kw in title_lower for kw in keywords)
         shock_match = any(kw in title_lower for kw in SHOCK_KEYWORDS)
         if cur_match and shock_match:
-            return True, item["title"]
-    return False, None
+            suspects.append(item["title"])
+
+    if not suspects:
+        return False, None
+
+    # Niveau 2 : si Gemini dispo, on demande une vraie analyse
+    if USE_LLM:
+        try:
+            verdict = analyze_with_gemini(suspects, currencies)
+            if verdict.get("shock"):
+                return True, f"[LLM] {verdict.get('title','?')} — {verdict.get('reason','')[:60]}"
+            return False, None  # Gemini dit "pas de panique"
+        except Exception as e:
+            print(f"[news] LLM KO, fallback keywords: {e}")
+            return True, suspects[0]
+
+    return True, suspects[0]
+
+# ── LLM (Gemini) pour analyse fine du sentiment ──────────────────────────
+def analyze_with_gemini(news_titles, currencies):
+    """
+    Demande à Gemini : ces news sont-elles VRAIMENT un risque pour la position ?
+    Renvoie un dict {"shock": bool, "title": str, "reason": str}.
+    """
+    prompt = f"""Tu es un analyste forex. Voici des titres de news détectés sur les devises {currencies} :
+
+{chr(10).join('- ' + t for t in news_titles[:5])}
+
+Question : un trader avec une position ouverte sur ces devises devrait-il fermer SA position MAINTENANT à cause d'un risque imminent ?
+
+Réponds UNIQUEMENT avec un JSON :
+{{"shock": true/false, "title": "titre concerné", "reason": "courte raison"}}
+
+Critères "shock = true" : guerre/attaque/crise majeure, banque centrale décision SURPRISE non programmée, défaut souverain, krach annoncé.
+Critères "shock = false" : analyse de marché, opinion d'expert, news déjà digérée, prévision routinière.
+"""
+    body = json.dumps({
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.1, "maxOutputTokens": 200}
+    }).encode()
+    url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+           f"gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}")
+    req = urllib.request.Request(url, data=body,
+                                 headers={"Content-Type": "application/json"})
+    resp = urllib.request.urlopen(req, timeout=15).read()
+    data = json.loads(resp)
+    text = data["candidates"][0]["content"]["parts"][0]["text"]
+    # Extraire le JSON du texte (Gemini peut entourer de ```json...```)
+    text = text.strip()
+    if "```" in text:
+        text = text.split("```")[1].replace("json", "", 1).strip()
+    return json.loads(text)
 
 # ── Verdict global ────────────────────────────────────────────────────────
 def can_open_position(symbol):
