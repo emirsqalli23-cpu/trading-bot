@@ -1,30 +1,44 @@
 #!/usr/bin/env python3
 """
-ICT/SMC Bot Cloud — multi-marche + news-aware.
+ICT/SMC Bot Cloud — VERSION PRO (multi-marche + news + trade management).
 
 MARKET (env) :
   - crypto : Kraken | BTC, ETH, SOL
   - gold   : Yahoo  | XAU/USD
   - forex  : Yahoo  | EUR/USD, GBP/USD
 
-Protections :
-  - Filtre events economiques (NFP, FOMC, CPI...)
-  - Detection shock news temps reel (RSS)
-  - Fermeture auto des positions si shock detecte
+Features :
+  ✓ Filtre news (calendrier eco + RSS shock)
+  ✓ Breakeven : SL → entrée à mi-chemin
+  ✓ TP partiel : 50% au TP1
+  ✓ Trailing stop : SL suit le prix
+  ✓ Filtre sessions (Londres+NY pour forex/or)
+  ✓ Filtre corrélation (EUR+GBP en même direction interdit)
+  ✓ ATR : taille adaptée à la volatilité
 """
 
 import json, os, urllib.request, urllib.parse
 from datetime import datetime, timezone
 
-# Import du filtre news (optionnel : si KO, le bot continue)
+# Modules optionnels (le bot fonctionne meme sans)
 try:
     from news_filter import can_open_position, should_close_positions
-    NEWS_FILTER_AVAILABLE = True
+    NEWS_OK = True
 except Exception as _e:
     print(f"⚠️ News filter indisponible : {_e}")
-    NEWS_FILTER_AVAILABLE = False
+    NEWS_OK = False
     def can_open_position(sym): return True, None
     def should_close_positions(sym): return False, None
+
+try:
+    from trade_manager import (
+        maybe_set_breakeven, maybe_take_partial, update_trailing_stop,
+        compute_atr, adjust_risk_by_atr, in_active_session, has_correlated_position,
+    )
+    TM_OK = True
+except Exception as _e:
+    print(f"⚠️ Trade manager indisponible : {_e}")
+    TM_OK = False
 
 # ── CONFIG GLOBALE ────────────────────────────────────────────────────────
 MARKET        = os.environ.get("MARKET", "crypto").lower()
@@ -34,26 +48,18 @@ MIN_RR        = 2.0
 MAX_POSITIONS = 2
 NTFY_TOPIC    = os.environ.get("NTFY_TOPIC", "nice-lens-ogc-emir")
 
-# ── CONFIG PAR MARCHE ─────────────────────────────────────────────────────
 if MARKET == "gold":
-    SYMBOLS      = ["GC=F"]
-    SYMBOLS_NICE = {"GC=F": "Or"}
-    DATA_SOURCE  = "yahoo"
-    LABEL        = "OR"
-    EMOJI        = "🥇"
+    SYMBOLS, SYMBOLS_NICE = ["GC=F"], {"GC=F": "Or"}
+    DATA_SOURCE, LABEL, EMOJI = "yahoo", "OR", "🥇"
 elif MARKET == "forex":
-    SYMBOLS      = ["EURUSD=X", "GBPUSD=X"]
+    SYMBOLS = ["EURUSD=X", "GBPUSD=X"]
     SYMBOLS_NICE = {"EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD"}
-    DATA_SOURCE  = "yahoo"
-    LABEL        = "FOREX"
-    EMOJI        = "💱"
+    DATA_SOURCE, LABEL, EMOJI = "yahoo", "FOREX", "💱"
 else:
-    MARKET       = "crypto"
-    SYMBOLS      = ["XBTUSD", "ETHUSD", "SOLUSD"]
+    MARKET = "crypto"
+    SYMBOLS = ["XBTUSD", "ETHUSD", "SOLUSD"]
     SYMBOLS_NICE = {"XBTUSD": "BTC/USD", "ETHUSD": "ETH/USD", "SOLUSD": "SOL/USD"}
-    DATA_SOURCE  = "kraken"
-    LABEL        = "CRYPTO"
-    EMOJI        = "🪙"
+    DATA_SOURCE, LABEL, EMOJI = "kraken", "CRYPTO", "🪙"
 
 STATE_FILE = os.path.join(os.path.dirname(__file__), f"state/state_{MARKET}.json")
 
@@ -63,15 +69,13 @@ def load_state():
     if MARKET == "crypto" and not os.path.exists(STATE_FILE) and os.path.exists(legacy):
         try:
             with open(legacy) as f: data = json.load(f)
-            print(f"📦 Migration : reprise du state legacy ({data.get('capital','?')}$)")
+            print(f"📦 Migration legacy ({data.get('capital','?')}$)")
             return data
-        except Exception:
-            pass
+        except Exception: pass
     if os.path.exists(STATE_FILE):
         try:
             with open(STATE_FILE) as f: return json.load(f)
-        except Exception:
-            pass
+        except Exception: pass
     return {"capital": CAPITAL_START, "positions": {}, "trades": [], "timestamp": None}
 
 def save_state(state):
@@ -94,18 +98,18 @@ def notify(title, message, priority=4, tags=None):
         req = urllib.request.Request("https://ntfy.sh", data=payload,
                                      headers={"Content-Type": "application/json"})
         urllib.request.urlopen(req, timeout=10)
-        print(f"📲 Notif : {title}")
+        print(f"📲 {title}")
     except Exception as e:
         print(f"⚠️ Notif KO : {e}")
 
-# ── KRAKEN ────────────────────────────────────────────────────────────────
+# ── DATA SOURCES ──────────────────────────────────────────────────────────
 def fetch_kraken(pair, interval, count=100):
     url = f"https://api.kraken.com/0/public/OHLC?pair={pair}&interval={interval}"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     data = json.loads(urllib.request.urlopen(req, timeout=15).read())
     if data.get("error"): raise ValueError(f"Kraken: {data['error']}")
-    result_key = [k for k in data["result"] if k != "last"][0]
-    rows = data["result"][result_key][-count:]
+    rk = [k for k in data["result"] if k != "last"][0]
+    rows = data["result"][rk][-count:]
     return [{"ts": r[0], "open": float(r[1]), "high": float(r[2]),
              "low": float(r[3]), "close": float(r[4])} for r in rows]
 
@@ -113,10 +117,8 @@ def get_kraken_price(pair):
     url = f"https://api.kraken.com/0/public/Ticker?pair={pair}"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     data = json.loads(urllib.request.urlopen(req, timeout=10).read())
-    result_key = list(data["result"].keys())[0]
-    return float(data["result"][result_key]["c"][0])
+    return float(data["result"][list(data["result"].keys())[0]]["c"][0])
 
-# ── YAHOO FINANCE ─────────────────────────────────────────────────────────
 def fetch_yahoo(symbol, interval, range_str, count=100):
     sym_enc = urllib.parse.quote(symbol, safe="")
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym_enc}?interval={interval}&range={range_str}"
@@ -151,7 +153,6 @@ def get_yahoo_price(symbol):
     meta = data["chart"]["result"][0]["meta"]
     return float(meta.get("regularMarketPrice") or meta.get("previousClose"))
 
-# ── DISPATCHERS ───────────────────────────────────────────────────────────
 def fetch_candles(sym, tf):
     if DATA_SOURCE == "kraken":
         intervals = {"H4": 240, "H1": 60, "M5": 5}
@@ -206,7 +207,7 @@ def check_mss(candles_m5):
     if last < sl: return "BEARISH_MSS"
     return None
 
-def build_plan(direction, struct_h4, ob_bull, ob_bear, capital):
+def build_plan(direction, struct_h4, ob_bull, ob_bear):
     if direction == "LONG":
         entry = ob_bull["low"] if ob_bull else struct_h4["ema21"]
         sl    = min(entry * 0.997, struct_h4["swing_low"] * 1.001)
@@ -220,6 +221,18 @@ def build_plan(direction, struct_h4, ob_bull, ob_bear, capital):
     return {"direction": direction, "entry": entry, "sl": sl,
             "tp1": tp1, "rr1": rr1, "valid": rr1 >= MIN_RR}
 
+# ── PNL HELPER (gere positions partielles) ────────────────────────────────
+def pnl_at_price(pos, exit_price):
+    """PnL sur la position restante, en se basant sur le SL initial."""
+    initial_sl  = pos.get("initial_sl", pos["sl"])
+    initial_r   = abs(pos["entry"] - initial_sl)
+    if initial_r == 0: return 0.0
+    if pos["direction"] == "LONG":
+        r_mult = (exit_price - pos["entry"]) / initial_r
+    else:
+        r_mult = (pos["entry"] - exit_price) / initial_r
+    return round(pos["risk_amount"] * r_mult, 2)
+
 # ── CYCLE PRINCIPAL ───────────────────────────────────────────────────────
 def run():
     state     = load_state()
@@ -227,83 +240,134 @@ def run():
     positions = state["positions"]
     trades    = state["trades"]
 
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] [{LABEL}] Capital: {capital:.2f}$ | Positions: {list(positions.keys())} | News-filter: {'ON' if NEWS_FILTER_AVAILABLE else 'OFF'}")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] [{LABEL}] Capital:{capital:.2f}$ | Pos:{list(positions.keys())} | News:{NEWS_OK} | TM:{TM_OK}")
 
-    # 0. PROTECTION SHOCK : si news catastrophique sur un symbole en position -> close immediat
+    # ─── 0. SHOCK NEWS : sortie d'urgence ─────────────────────────────────
     for sym in list(positions.keys()):
         try:
             shock, title = should_close_positions(sym)
             if shock:
                 pos = positions[sym]
                 price = get_price(sym)
-                nice = SYMBOLS_NICE.get(sym, sym)
-                # PnL au prix actuel
-                if pos["direction"] == "LONG":
-                    pnl_pct = (price - pos["entry"]) / abs(pos["entry"] - pos["sl"])
-                else:
-                    pnl_pct = (pos["entry"] - price) / abs(pos["entry"] - pos["sl"])
-                pnl = round(pos["risk_amount"] * pnl_pct, 2)
+                pnl = pnl_at_price(pos, price)
                 capital += pos["risk_amount"] + pnl
-                trades.append({"symbol": nice, "type": "SHOCK_EXIT", "pnl": pnl,
-                               "time": datetime.now(timezone.utc).isoformat(),
+                trades.append({"symbol": SYMBOLS_NICE.get(sym, sym), "type": "SHOCK_EXIT",
+                               "pnl": pnl, "time": datetime.now(timezone.utc).isoformat(),
                                "news": title[:120]})
                 del positions[sym]
-                notify(f"🚨 Sortie d'urgence sur {nice}",
-                       f"News importante détectée :\n\"{title[:100]}\"\nPosition fermée au prix actuel.\nP&L : {pnl:+.0f}$ | Capital : {capital:.0f}$",
+                notify(f"🚨 Sortie d'urgence sur {SYMBOLS_NICE.get(sym, sym)}",
+                       f"News : \"{title[:80]}\"\nP&L : {pnl:+.0f}$ | Capital : {capital:.0f}$",
                        priority=5, tags=["rotating_light"])
-                print(f"🚨 SHOCK EXIT {nice} | News: {title[:60]} | PnL: {pnl:+.2f}$")
         except Exception as e:
-            print(f"⚠️ Erreur shock check {sym}: {e}")
+            print(f"⚠️ Shock check {sym}: {e}")
 
-    # 1. Gerer SL/TP normaux
+    # ─── 1. GERER POSITIONS OUVERTES (BE, partial, trailing, SL/TP) ──────
     for sym in list(positions.keys()):
         pos = positions[sym]
         try:
             price = get_price(sym)
-            nice = SYMBOLS_NICE.get(sym, sym)
+            nice  = SYMBOLS_NICE.get(sym, sym)
+
+            # 1a. BREAKEVEN (SL → entrée si mi-chemin)
+            if TM_OK:
+                be_done, be_msg = maybe_set_breakeven(pos, price)
+                if be_done:
+                    notify(f"🛡️ Breakeven sur {nice}",
+                           f"{be_msg}\nLe pire cas est maintenant 0$",
+                           priority=3, tags=["shield"])
+
+            # 1b. TP PARTIEL (50% sécurisé au TP1)
+            if TM_OK:
+                partial_pnl, partial_msg = maybe_take_partial(pos, price)
+                if partial_pnl is not None:
+                    # On reverse au capital : le 50% recupere + le 50% gagne
+                    initial_risk = pos.get("initial_risk_amount", pos["risk_amount"] * 2)
+                    half_recovered = round(0.5 * initial_risk, 2)
+                    capital += half_recovered + partial_pnl
+                    trades.append({"symbol": nice, "type": "TP_PARTIAL", "pnl": partial_pnl,
+                                   "time": datetime.now(timezone.utc).isoformat()})
+                    notify(f"💰 50% encaissé sur {nice}",
+                           f"{partial_msg}\nCapital : {capital:.0f}$",
+                           priority=5, tags=["moneybag"])
+
+            # 1c. TRAILING STOP (SL suit le prix si actif)
+            if TM_OK:
+                trail_done, new_sl = update_trailing_stop(pos, price)
+
+            # 1d. Vérifier SL / TP final
             hit_sl = (pos["direction"] == "LONG"  and price <= pos["sl"]) or \
                      (pos["direction"] == "SHORT" and price >= pos["sl"])
             hit_tp = (pos["direction"] == "LONG"  and price >= pos["tp1"]) or \
                      (pos["direction"] == "SHORT" and price <= pos["tp1"])
 
             if hit_sl:
-                pnl = -pos["risk_amount"]
-                trades.append({"symbol": nice, "type": "SL", "pnl": pnl,
-                               "time": datetime.now(timezone.utc).isoformat()})
-                del positions[sym]
-                notify(f"❌ Pari perdu sur {nice}",
-                       f"Le bot s'est trompé.\nPerte : {abs(pnl):.0f}$\nArgent restant : {capital:.0f}$",
-                       priority=4, tags=["x"])
-                print(f"🔴 SL {nice} | PnL: {pnl:.2f}$")
-            elif hit_tp:
-                pnl = round(pos["risk_amount"] * pos["rr1"], 2)
+                pnl = pnl_at_price(pos, pos["sl"])
                 capital += pos["risk_amount"] + pnl
-                trades.append({"symbol": nice, "type": "TP", "pnl": pnl,
+
+                if pos.get("tp1_taken"):
+                    # Sortie post-TP1 : profit additionnel verrouillé
+                    msg = (f"Trailing stop touché — gain bloqué\nP&L sur le runner : {pnl:+.0f}$\n"
+                           f"Capital total : {capital:.0f}$")
+                    notify(f"🎯 Runner clôturé sur {nice}", msg,
+                           priority=4, tags=["chart_with_upwards_trend"])
+                    trades.append({"symbol": nice, "type": "TRAIL_EXIT", "pnl": pnl,
+                                   "time": datetime.now(timezone.utc).isoformat()})
+                elif pos.get("be_set"):
+                    # SL au breakeven : 0$ perdu
+                    notify(f"⚪ Pari nul sur {nice}",
+                           f"SL au breakeven, ni gain ni perte\nCapital : {capital:.0f}$",
+                           priority=3, tags=["white_circle"])
+                    trades.append({"symbol": nice, "type": "BE", "pnl": pnl,
+                                   "time": datetime.now(timezone.utc).isoformat()})
+                else:
+                    # SL classique
+                    notify(f"❌ Pari perdu sur {nice}",
+                           f"Le bot s'est trompé.\nPerte : {abs(pnl):.0f}$\nCapital : {capital:.0f}$",
+                           priority=4, tags=["x"])
+                    trades.append({"symbol": nice, "type": "SL", "pnl": pnl,
+                                   "time": datetime.now(timezone.utc).isoformat()})
+                del positions[sym]
+
+            elif hit_tp:
+                # TP étendu touché (apres partial déjà pris)
+                pnl = pnl_at_price(pos, pos["tp1"])
+                capital += pos["risk_amount"] + pnl
+                trades.append({"symbol": nice, "type": "TP_EXTENDED", "pnl": pnl,
                                "time": datetime.now(timezone.utc).isoformat()})
                 del positions[sym]
                 notify(f"✅ Pari gagné sur {nice} 💰",
-                       f"Le bot avait raison !\nGain : +{pnl:.0f}$\nArgent total : {capital:.0f}$",
+                       f"TP étendu touché !\nGain : +{pnl:.0f}$\nCapital total : {capital:.0f}$",
                        priority=5, tags=["white_check_mark", "moneybag"])
-                print(f"🟢 TP {nice} | PnL: +{pnl:.2f}$")
             else:
-                print(f"⏳ {nice} | Prix: {price:.4f} | SL: {pos['sl']:.4f} | TP1: {pos['tp1']:.4f}")
+                print(f"⏳ {nice} | Prix:{price:.4f} | SL:{pos['sl']:.4f} | TP:{pos['tp1']:.4f} | BE:{pos.get('be_set',False)} | Trail:{pos.get('trail_active',False)}")
         except Exception as e:
             print(f"⚠️ Erreur gestion {sym}: {e}")
 
-    # 2. Chercher nouveaux setups (avec filtre news)
+    # ─── 2. CHERCHER NOUVEAUX SETUPS ─────────────────────────────────────
+    # Filtre session global
+    if TM_OK:
+        ok_session, why = in_active_session(MARKET)
+        if not ok_session:
+            print(f"🛌 {why} — pas de nouveau trade ce cycle")
+            state["capital"]   = capital
+            state["positions"] = positions
+            state["trades"]    = trades
+            save_state(state)
+            return
+
     for sym in SYMBOLS:
         nice = SYMBOLS_NICE.get(sym, sym)
         if sym in positions or len(positions) >= MAX_POSITIONS:
             continue
 
-        # PROTECTION : event economique imminent ou shock recent
+        # Filtre news
         try:
             allowed, reason = can_open_position(sym)
             if not allowed:
-                print(f"🛡️ {nice} BLOQUE par filtre news : {reason}")
+                print(f"🛡️ {nice} bloqué par news : {reason}")
                 continue
         except Exception as e:
-            print(f"⚠️ News filter error sur {sym}: {e}")
+            print(f"⚠️ News filter {sym}: {e}")
 
         try:
             c_h4 = fetch_candles(sym, "H4")
@@ -325,35 +389,55 @@ def run():
 
             expected_mss = "BULLISH_MSS" if bias == "LONG" else "BEARISH_MSS"
             if mss != expected_mss:
-                print(f"⏳ {nice} | Biais:{bias} | MSS attendu:{expected_mss} | actuel:{mss}")
+                print(f"⏳ {nice} | Biais:{bias} | MSS attendu:{expected_mss} actuel:{mss}")
                 continue
 
-            plan = build_plan(bias, s_h4, ob_bull, ob_bear, capital)
-            print(f"📋 {nice} | {bias} | Entrée:{plan['entry']:.4f} | R:R:{plan['rr1']}")
+            # Filtre corrélation
+            if TM_OK:
+                conflict, other = has_correlated_position(sym, bias, positions)
+                if conflict:
+                    print(f"🔗 {nice} bloqué : déjà {bias} sur {SYMBOLS_NICE.get(other, other)} (corrélé)")
+                    continue
 
+            plan = build_plan(bias, s_h4, ob_bull, ob_bear)
+            print(f"📋 {nice} | {bias} | Entrée:{plan['entry']:.4f} | R:R:{plan['rr1']}")
             if not plan["valid"]:
                 print(f"❌ {nice} R:R {plan['rr1']} < {MIN_RR}")
                 continue
 
-            risk_amount = round(capital * RISK_PCT, 2)
+            # Risque ajusté par ATR (volatilité)
+            base_risk = round(capital * RISK_PCT, 2)
+            risk_amount = base_risk
+            if TM_OK:
+                atr_now = compute_atr(c_h1, period=14)
+                avg_atr = compute_atr(c_h4, period=14) if len(c_h4) > 14 else atr_now
+                risk_amount = adjust_risk_by_atr(base_risk, atr_now, avg_atr)
+                if risk_amount != base_risk:
+                    print(f"📏 ATR ajustement : risque {base_risk}$ → {risk_amount}$")
+
             capital -= risk_amount
             positions[sym] = {
-                "direction":   plan["direction"],
-                "entry":       plan["entry"],
-                "sl":          plan["sl"],
-                "tp1":         plan["tp1"],
-                "rr1":         plan["rr1"],
-                "risk_amount": risk_amount,
+                "direction":            plan["direction"],
+                "entry":                plan["entry"],
+                "sl":                   plan["sl"],
+                "initial_sl":           plan["sl"],          # garde l'origine pour calcul PnL
+                "tp1":                  plan["tp1"],
+                "rr1":                  plan["rr1"],
+                "risk_amount":          risk_amount,
+                "initial_risk_amount":  risk_amount,
+                "be_set":               False,
+                "tp1_taken":            False,
+                "trail_active":         False,
             }
             direction_fr = "va monter 📈" if bias == "LONG" else "va baisser 📉"
             notify(f"🎯 Nouveau pari sur {nice}",
-                   f"Le bot pense que {nice} {direction_fr}\nMise : {risk_amount:.0f}$\nSi ça marche : +{round(risk_amount * plan['rr1']):.0f}$",
+                   f"{nice} {direction_fr}\nMise : {risk_amount:.0f}$\nGain potentiel : +{round(risk_amount * plan['rr1']):.0f}$",
                    priority=4, tags=["rocket" if bias == "LONG" else "chart_with_downwards_trend"])
             print(f"✅ POSITION OUVERTE {nice} {bias} | Risque: {risk_amount:.2f}$")
         except Exception as e:
             print(f"⚠️ Erreur analyse {sym}: {e}")
 
-    # 3. Sauvegarder
+    # ─── 3. SAUVEGARDER ──────────────────────────────────────────────────
     state["capital"]   = capital
     state["positions"] = positions
     state["trades"]    = trades
