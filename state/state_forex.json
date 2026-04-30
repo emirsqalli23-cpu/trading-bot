@@ -1,7 +1,16 @@
 {
-  "capital": 1000.0,
-  "positions": {},
+  "capital": 980.0,
+  "positions": {
+    "GBPUSD=X": {
+      "direction": "LONG",
+      "entry": 1.3482722043991089,
+      "sl": 1.3442273877859117,
+      "tp1": 1.3575890064239502,
+      "rr1": 2.3,
+      "risk_amount": 20.0
+    }
+  },
   "trades": [],
-  "timestamp": "2026-04-30T09:50:39.597882+00:00",
+  "timestamp": "2026-04-30T09:55:45.734660+00:00",
   "market": "forex"
 }
