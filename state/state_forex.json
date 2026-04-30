@@ -1,14 +1,6 @@
 {
-  "capital": 960.4,
+  "capital": 1026.4,
   "positions": {
-    "GBPUSD=X": {
-      "direction": "LONG",
-      "entry": 1.3482722043991089,
-      "sl": 1.3442273877859117,
-      "tp1": 1.3575890064239502,
-      "rr1": 2.3,
-      "risk_amount": 20.0
-    },
     "EURUSD=X": {
       "direction": "LONG",
       "entry": 1.1663167476654053,
@@ -18,7 +10,14 @@
       "risk_amount": 19.6
     }
   },
-  "trades": [],
-  "timestamp": "2026-04-30T14:58:08.071756+00:00",
+  "trades": [
+    {
+      "symbol": "GBP/USD",
+      "type": "TP",
+      "pnl": 46.0,
+      "time": "2026-04-30T15:03:09.123569+00:00"
+    }
+  ],
+  "timestamp": "2026-04-30T15:03:09.785212+00:00",
   "market": "forex"
 }
