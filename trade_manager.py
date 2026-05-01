@@ -10,6 +10,7 @@ Trade Manager — gestion pro des positions :
 6. CORRÉLATION        : évite EUR/USD + GBP/USD en même direction
 """
 
+import json, os, urllib.request, urllib.parse
 from datetime import datetime, timezone
 
 # ── 1) BREAKEVEN ──────────────────────────────────────────────────────────
@@ -259,3 +260,66 @@ def aligned_with_daily(direction, d1_bias):
     if d1_bias == "NEUTRAL": return True  # neutre = OK les 2 sens
     return (direction == "LONG" and d1_bias == "BULLISH") or \
            (direction == "SHORT" and d1_bias == "BEARISH")
+
+# ── 10) CONFLUENCE DXY (Dollar Index) ─────────────────────────────────────
+# Pourquoi ? Le dollar est l'autre côté de chaque trade EUR/USD, GBP/USD, XAU/USD.
+# Si on LONG EUR/USD, on parie sur USD qui baisse → vérifier que DXY baisse aussi.
+# Si DXY monte alors qu'on veut LONG EUR/USD → signal contradictoire → on skip.
+
+# Symboles affectés par le DXY (avec leur sens)
+DXY_AFFECTED = {
+    "EURUSD=X": "INVERSE",  # USD au dénominateur → DXY ↑ = EUR/USD ↓
+    "GBPUSD=X": "INVERSE",
+    "GC=F":     "INVERSE",  # Or côté en USD → DXY ↑ = Or ↓
+    "XAUUSD=X": "INVERSE",
+}
+
+def fetch_dxy_trend(api_key=None):
+    """
+    Récupère la tendance DXY via TwelveData (D1, EMA50).
+    Renvoie 'BULLISH' (USD fort), 'BEARISH' (USD faible), 'NEUTRAL'.
+    """
+    api_key = api_key or os.environ.get("TWELVE_API_KEY", "86757c28a7e3491ba6aa12f59aa13065")
+    url = (f"https://api.twelvedata.com/time_series"
+           f"?symbol=DXY&interval=1day&outputsize=100"
+           f"&apikey={api_key}&timezone=UTC&order=ASC")
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        data = json.loads(urllib.request.urlopen(req, timeout=10).read())
+        if data.get("status") == "error": return "NEUTRAL"
+        closes = [float(b["close"]) for b in data.get("values", []) if b.get("close")]
+        if len(closes) < 50: return "NEUTRAL"
+        return _trend_from_closes(closes)
+    except Exception as e:
+        print(f"  ↪ DXY fetch KO: {e}")
+        return "NEUTRAL"
+
+def _trend_from_closes(closes):
+    """EMA50 + marge 0.3% (DXY est moins volatile que les paires forex)."""
+    ema = closes[0]
+    k = 2 / 51
+    for c in closes[1:]:
+        ema = c * k + ema * (1 - k)
+    last = closes[-1]
+    if last > ema * 1.003: return "BULLISH"   # USD fort
+    if last < ema * 0.997: return "BEARISH"   # USD faible
+    return "NEUTRAL"
+
+def dxy_aligned(symbol, direction, dxy_trend):
+    """
+    Le trade est-il aligné avec le DXY ?
+    Pour les paires INVERSE (EUR/USD, GBP/USD, Or) :
+    - LONG  → on veut USD qui baisse → DXY != BULLISH
+    - SHORT → on veut USD qui monte  → DXY != BEARISH
+    Si DXY est NEUTRAL → on laisse passer (pas de contradiction).
+    """
+    if dxy_trend == "NEUTRAL": return True, "DXY neutre"
+    rel = DXY_AFFECTED.get(symbol)
+    if not rel: return True, "DXY non applicable"  # paires non-USD
+
+    if rel == "INVERSE":
+        if direction == "LONG"  and dxy_trend == "BULLISH":
+            return False, f"DXY haussier (USD fort) bloque LONG {symbol}"
+        if direction == "SHORT" and dxy_trend == "BEARISH":
+            return False, f"DXY baissier (USD faible) bloque SHORT {symbol}"
+    return True, f"DXY {dxy_trend} compatible"

@@ -35,6 +35,7 @@ try:
         maybe_set_breakeven, maybe_take_partial, update_trailing_stop,
         compute_atr, adjust_risk_by_atr, in_active_session, has_correlated_position,
         daily_loss_exceeded, in_killzone, daily_bias, aligned_with_daily,
+        fetch_dxy_trend, dxy_aligned,
     )
     TM_OK = True
 except Exception as _e:
@@ -492,6 +493,15 @@ def run():
         else:
             print(f"🎯 {kz_name} active — analyse des setups")
 
+    # ─── DXY Confluence : fetch 1× par cycle pour or + forex ─────────────
+    dxy = "NEUTRAL"
+    if TM_OK and MARKET in ("forex", "gold"):
+        dxy = fetch_dxy_trend()
+        cycle_log["checks"]["dxy"] = {"trend": dxy}
+        if dxy != "NEUTRAL":
+            usd_state = "fort 💪" if dxy == "BULLISH" else "faible 📉"
+            print(f"💵 DXY tendance : {dxy} (USD {usd_state})")
+
     for sym in SYMBOLS:
         nice = SYMBOLS_NICE.get(sym, sym)
         sym_log = {"symbol": nice, "decision": "?", "details": []}
@@ -605,6 +615,18 @@ def run():
                     sym_log["details"].append(f"Déjà {bias} sur {SYMBOLS_NICE.get(other, other)}")
                     cycle_log["symbols"].append(sym_log)
                     continue
+
+            # Filtre DXY (or + forex uniquement)
+            if TM_OK and MARKET in ("forex", "gold"):
+                ok_dxy, why_dxy = dxy_aligned(sym, bias, dxy)
+                if not ok_dxy:
+                    print(f"💵 {nice} bloqué : {why_dxy}")
+                    sym_log["decision"] = "BLOCKED_DXY"
+                    sym_log["details"].append(why_dxy)
+                    cycle_log["symbols"].append(sym_log)
+                    continue
+                if dxy != "NEUTRAL":
+                    print(f"  ✓ DXY confirme : {why_dxy}")
 
             # ATR calculé ICI — utilisé pour le SL de l'or + l'ajustement risque
             atr_now = None
