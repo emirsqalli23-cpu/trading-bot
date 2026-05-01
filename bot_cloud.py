@@ -49,6 +49,9 @@ MIN_RR        = 2.0
 MAX_POSITIONS = 2
 NTFY_TOPIC    = os.environ.get("NTFY_TOPIC", "nice-lens-ogc-emir")
 
+# TwelveData : données temps réel pour or + forex (remplace Yahoo Finance)
+TWELVE_API_KEY = os.environ.get("TWELVE_API_KEY", "86757c28a7e3491ba6aa12f59aa13065")
+
 if MARKET == "gold":
     SYMBOLS, SYMBOLS_NICE = ["GC=F"], {"GC=F": "Or"}
     DATA_SOURCE, LABEL, EMOJI = "yahoo", "OR", "🥇"
@@ -120,7 +123,56 @@ def get_kraken_price(pair):
     data = json.loads(urllib.request.urlopen(req, timeout=10).read())
     return float(data["result"][list(data["result"].keys())[0]]["c"][0])
 
+def fetch_twelvedata(symbol, interval, count=100):
+    """
+    TwelveData : données OHLCV temps réel (remplace Yahoo Finance).
+    Symbols : XAU/USD pour l'or, EUR/USD et GBP/USD pour le forex.
+    Avantage vs Yahoo : pas de délai 15-20 min, API officielle stable.
+    """
+    # Mapping symbols Yahoo → TwelveData
+    sym_map = {
+        "GC=F":     "XAU/USD",
+        "EURUSD=X": "EUR/USD",
+        "GBPUSD=X": "GBP/USD",
+    }
+    td_sym = sym_map.get(symbol, symbol)
+    td_sym_enc = urllib.parse.quote(td_sym, safe="")
+    # Mapping intervalles
+    iv_map = {"60m": "1h", "5m": "5min", "1d": "1day"}
+    td_iv = iv_map.get(interval, interval)
+    url = (f"https://api.twelvedata.com/time_series"
+           f"?symbol={td_sym_enc}&interval={td_iv}&outputsize={count}"
+           f"&apikey={TWELVE_API_KEY}&timezone=UTC&order=ASC")
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    data = json.loads(urllib.request.urlopen(req, timeout=15).read())
+    if data.get("status") == "error":
+        raise ValueError(f"TwelveData: {data.get('message','?')}")
+    candles = []
+    for bar in data.get("values", []):
+        try:
+            candles.append({
+                "ts":    bar["datetime"],
+                "open":  float(bar["open"]),
+                "high":  float(bar["high"]),
+                "low":   float(bar["low"]),
+                "close": float(bar["close"]),
+            })
+        except Exception:
+            continue
+    return candles
+
+def get_twelvedata_price(symbol):
+    sym_map = {"GC=F": "XAU/USD", "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD"}
+    td_sym = urllib.parse.quote(sym_map.get(symbol, symbol), safe="")
+    url = f"https://api.twelvedata.com/price?symbol={td_sym}&apikey={TWELVE_API_KEY}"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    data = json.loads(urllib.request.urlopen(req, timeout=10).read())
+    if data.get("status") == "error":
+        raise ValueError(f"TwelveData price: {data.get('message','?')}")
+    return float(data["price"])
+
 def fetch_yahoo(symbol, interval, range_str, count=100):
+    """Fallback Yahoo Finance (utilisé uniquement si TwelveData KO)."""
     sym_enc = urllib.parse.quote(symbol, safe="")
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym_enc}?interval={interval}&range={range_str}"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -159,12 +211,34 @@ def fetch_candles(sym, tf):
         intervals = {"H4": 240, "H1": 60, "M5": 5}
         counts    = {"H4": 100, "H1": 50, "M5": 30}
         return fetch_kraken(sym, intervals[tf], counts[tf])
-    if tf == "H4": return aggregate_h4(fetch_yahoo(sym, "60m", "30d", 400))
-    if tf == "H1": return fetch_yahoo(sym, "60m", "15d", 50)
-    if tf == "M5": return fetch_yahoo(sym, "5m", "5d", 30)
+    # TwelveData pour or/forex (temps réel), fallback Yahoo si KO
+    iv_map = {"H4": "60m", "H1": "60m", "M5": "5m"}
+    counts = {"H4": 400, "H1": 50, "M5": 30}
+    try:
+        candles = fetch_twelvedata(sym, iv_map[tf], counts[tf])
+        if tf == "H4":
+            candles = aggregate_h4(candles)
+        if len(candles) < 5:
+            raise ValueError("Pas assez de bougies TwelveData")
+        return candles
+    except Exception as e:
+        print(f"  ⚠️ TwelveData KO ({e}), fallback Yahoo")
+        if tf == "H4": return aggregate_h4(fetch_yahoo(sym, "60m", "30d", 400))
+        if tf == "H1": return fetch_yahoo(sym, "60m", "15d", 50)
+        if tf == "M5": return fetch_yahoo(sym, "5m", "5d", 30)
 
 def get_price(sym):
-    return get_kraken_price(sym) if DATA_SOURCE == "kraken" else get_yahoo_price(sym)
+    if DATA_SOURCE == "kraken":
+        return get_kraken_price(sym)
+    try:
+        return get_twelvedata_price(sym)
+    except Exception as e:
+        print(f"  ⚠️ TwelveData price KO ({e}), fallback Yahoo")
+        return get_yahoo_price(sym)
+
+def fetch_yahoo_d1(sym, count=100):
+    """D1 via Yahoo uniquement (TwelveData consomme trop de crédits sur 1d)."""
+    return fetch_yahoo(sym, "1d", "200d", count)
 
 # ── ANALYSE ICT ───────────────────────────────────────────────────────────
 def market_structure(candles, n=20):
@@ -452,7 +526,7 @@ def run():
             d1_trend = "NEUTRAL"
             if TM_OK and DATA_SOURCE == "yahoo":
                 try:
-                    c_d1 = fetch_yahoo(sym, "1d", "200d", 100)
+                    c_d1 = fetch_yahoo_d1(sym, 100)
                     d1_trend = daily_bias(c_d1)
                 except Exception as _e:
                     print(f"  ↪ D1 fetch KO: {_e}")
