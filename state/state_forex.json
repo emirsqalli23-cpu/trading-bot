@@ -52,10 +52,10 @@
       "time": "2026-05-01T18:33:50.306856+00:00"
     }
   ],
-  "timestamp": "2026-05-01T18:33:51.203889+00:00",
+  "timestamp": "2026-05-01T18:38:50.535313+00:00",
   "market": "forex",
   "last_cycle": {
-    "time": "2026-05-01T18:33:49.149005+00:00",
+    "time": "2026-05-01T18:38:49.150854+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -80,7 +80,7 @@
         "d1": "NEUTRAL",
         "h4": "BULLISH",
         "h1": "BEARISH",
-        "mss": "BEARISH_MSS"
+        "mss": null
       },
       {
         "symbol": "GBP/USD",
