@@ -103,6 +103,38 @@
   .b-tr { background: #422006; color: #fdba74; }
   .b-sk { background: #581c87; color: #d8b4fe; }
 
+  /* Mini-graphique du trade */
+  .trade-chart {
+    background: #0f1419; border-radius: 8px; padding: 8px; margin: 10px 0;
+    border: 1px solid #252d36;
+  }
+  .trade-chart svg { display: block; width: 100%; height: 140px; }
+  .chart-legend {
+    display: flex; gap: 12px; font-size: 0.7em; color: #94a3b8;
+    margin-top: 6px; flex-wrap: wrap;
+  }
+  .chart-legend span { display: flex; align-items: center; gap: 4px; }
+  .chart-legend .dot { width: 8px; height: 2px; border-radius: 1px; display: inline-block; }
+
+  .price-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    font-size: 0.85em; color: #cbd5e1; margin: 8px 0;
+  }
+  .price-row b { color: #e6e9ec; }
+
+  .validations {
+    background: #0f1419; border-radius: 8px; padding: 10px; margin-top: 8px;
+    border: 1px solid #1e3a8a;
+  }
+  .vtitle { font-size: 0.85em; color: #93c5fd; font-weight: 600; margin-bottom: 6px; }
+  .vrow {
+    display: grid; grid-template-columns: 18px 1fr auto; gap: 6px;
+    font-size: 0.78em; padding: 3px 0; align-items: center;
+  }
+  .vico { color: #22c55e; }
+  .vname { color: #cbd5e1; }
+  .vdetail { color: #6b7785; font-size: 0.95em; }
+
   .footer { color: #6b7785; font-size: 0.75em; text-align: center; margin: 20px 0; }
   .refresh-btn {
     background: #2563eb; color: white; border: none; padding: 8px 16px;
@@ -254,6 +286,71 @@ function renderPipeline(state) {
   return html;
 }
 
+// Génère un mini-graphique candlestick SVG avec marqueurs Entry/SL/TP
+function renderChart(candles, entry, sl, tp, direction) {
+  if (!candles || candles.length === 0) return "";
+  const W = 320, H = 140, PAD = 8;
+  const innerW = W - PAD * 2, innerH = H - PAD * 2;
+
+  // Plage de prix incluant SL et TP
+  let lows = candles.map(c => c.l);
+  let highs = candles.map(c => c.h);
+  let minP = Math.min(...lows, sl, tp, entry);
+  let maxP = Math.max(...highs, sl, tp, entry);
+  const range = maxP - minP || 1;
+  // Marge 5% en haut et bas
+  minP -= range * 0.05;
+  maxP += range * 0.05;
+  const totalRange = maxP - minP;
+
+  const xStep = innerW / candles.length;
+  const cw = Math.max(2, xStep * 0.7);
+
+  const yPos = (price) => PAD + innerH * (1 - (price - minP) / totalRange);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  // Grille horizontale
+  for (let i = 1; i < 4; i++) {
+    const y = PAD + (innerH * i) / 4;
+    svg += `<line x1="${PAD}" y1="${y}" x2="${W-PAD}" y2="${y}" stroke="#252d36" stroke-width="0.5"/>`;
+  }
+  // Bougies
+  candles.forEach((c, i) => {
+    const x = PAD + i * xStep + xStep/2;
+    const yH = yPos(c.h), yL = yPos(c.l), yO = yPos(c.o), yC = yPos(c.c);
+    const up = c.c >= c.o;
+    const color = up ? "#22c55e" : "#ef4444";
+    // Mèche
+    svg += `<line x1="${x}" y1="${yH}" x2="${x}" y2="${yL}" stroke="${color}" stroke-width="0.8"/>`;
+    // Corps
+    svg += `<rect x="${x - cw/2}" y="${Math.min(yO, yC)}" width="${cw}" height="${Math.max(1, Math.abs(yC - yO))}" fill="${color}"/>`;
+  });
+  // Lignes Entry / SL / TP
+  const yE = yPos(entry), ySL = yPos(sl), yTP = yPos(tp);
+  svg += `<line x1="${PAD}" y1="${yE}" x2="${W-PAD}" y2="${yE}" stroke="#3b82f6" stroke-width="1" stroke-dasharray="3,3"/>`;
+  svg += `<line x1="${PAD}" y1="${ySL}" x2="${W-PAD}" y2="${ySL}" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,3"/>`;
+  svg += `<line x1="${PAD}" y1="${yTP}" x2="${W-PAD}" y2="${yTP}" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,3"/>`;
+  // Étiquettes
+  svg += `<text x="${W-PAD-2}" y="${yE-2}"  text-anchor="end" fill="#3b82f6" font-size="9" font-weight="700">Entrée ${entry.toFixed(4)}</text>`;
+  svg += `<text x="${W-PAD-2}" y="${ySL-2}" text-anchor="end" fill="#ef4444" font-size="9" font-weight="700">SL ${sl.toFixed(4)}</text>`;
+  svg += `<text x="${W-PAD-2}" y="${yTP-2}" text-anchor="end" fill="#22c55e" font-size="9" font-weight="700">TP ${tp.toFixed(4)}</text>`;
+  // Flèche direction sur la dernière bougie
+  const lastX = PAD + (candles.length - 0.5) * xStep;
+  const arrow = direction === "LONG" ? "▲" : "▼";
+  const arrCol = direction === "LONG" ? "#22c55e" : "#ef4444";
+  svg += `<text x="${lastX}" y="${yE+4}" text-anchor="middle" fill="${arrCol}" font-size="14" font-weight="900">${arrow}</text>`;
+  svg += `</svg>`;
+
+  return `<div class="trade-chart">${svg}
+    <div class="chart-legend">
+      <span><span class="dot" style="background:#3b82f6"></span>Entrée</span>
+      <span><span class="dot" style="background:#22c55e"></span>TP (objectif)</span>
+      <span><span class="dot" style="background:#ef4444"></span>SL (sécurité)</span>
+      <span style="color:#6b7785">30 dernières heures</span>
+    </div>
+  </div>`;
+}
+
 function renderMarket(market) {
   const m = MARKETS[market];
   const state = states[market];
@@ -275,7 +372,7 @@ function renderMarket(market) {
   // Pipeline live
   html += renderPipeline(state);
 
-  // Positions ouvertes
+  // Positions ouvertes (avec graphique + explications)
   if (Object.keys(pos).length > 0) {
     html += `<div class="card"><h3>📂 Positions en cours</h3>`;
     for (const [sym, p] of Object.entries(pos)) {
@@ -284,10 +381,35 @@ function renderMarket(market) {
       if (p.tp1_taken)     flags.push("💰 50% pris");
       if (p.trail_active)  flags.push("🎯 Trailing");
       const dirIco = p.direction === "LONG" ? "📈" : "📉";
+      const dirCol = p.direction === "LONG" ? "#22c55e" : "#ef4444";
+
+      // Graphique SVG mini-candlestick
+      let chartHtml = "";
+      if (p.chart_candles && p.chart_candles.length > 0) {
+        chartHtml = renderChart(p.chart_candles, p.entry, p.sl, p.tp1, p.direction);
+      }
+
+      // Checklist des validations
+      let validHtml = "";
+      if (p.validations && p.validations.length > 0) {
+        validHtml = `<div class="validations"><div class="vtitle">✨ Pourquoi le bot a pris ce trade :</div>`;
+        for (const v of p.validations) {
+          validHtml += `<div class="vrow"><span class="vico">✅</span><span class="vname">${v.name}</span><span class="vdetail">${v.detail || ''}</span></div>`;
+        }
+        validHtml += `</div>`;
+      }
+
       html += `<div class="pos-card">
-        <div class="head"><b>${sym}</b><span>${dirIco} ${p.direction}</span></div>
-        <div class="price-row">Entrée: ${p.entry.toFixed(4)} | SL: ${p.sl.toFixed(4)} | TP: ${p.tp1.toFixed(4)}</div>
+        <div class="head"><b>${sym}</b><span style="color:${dirCol}">${dirIco} ${p.direction}</span></div>
+        ${chartHtml}
+        <div class="price-row">
+          <div>Entrée : <b>${p.entry.toFixed(4)}</b></div>
+          <div>SL : <span style="color:#ef4444">${p.sl.toFixed(4)}</span></div>
+          <div>TP : <span style="color:#22c55e">${p.tp1.toFixed(4)}</span></div>
+          <div>R:R : <b>${p.rr1}</b></div>
+        </div>
         ${flags.length ? `<div class="flags">${flags.map(f => `<span class="flag">${f}</span>`).join('')}</div>` : ''}
+        ${validHtml}
       </div>`;
     }
     html += `</div>`;

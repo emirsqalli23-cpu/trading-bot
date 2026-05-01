@@ -705,6 +705,37 @@ def run():
                     print(f"📏 ATR ajustement : risque {base_risk}$ → {risk_amount}$")
 
             capital -= risk_amount
+
+            # Snapshot pour le dashboard : 30 dernières bougies + validations
+            chart_candles = [
+                {"o": round(c["open"], 5),  "h": round(c["high"], 5),
+                 "l": round(c["low"], 5),   "c": round(c["close"], 5),
+                 "ts": c["ts"] if isinstance(c["ts"], (int, float)) else str(c["ts"])}
+                for c in c_h1[-30:]
+            ]
+            validations = [
+                {"name": "Tendance Daily (D1)",   "ok": True, "detail": d1_trend},
+                {"name": "Tendance H4",           "ok": True, "detail": s_h4["trend"]},
+                {"name": "Tendance H1",           "ok": True, "detail": s_h1["trend"]},
+                {"name": "Market Structure Shift", "ok": True, "detail": expected_mss},
+                {"name": "Order Block trouvé",    "ok": True, "detail": "OB détecté sur H1"},
+                {"name": "R:R minimum",           "ok": True, "detail": f"{plan['rr1']} ≥ {MIN_RR}"},
+            ]
+            if MARKET in ("forex", "gold"):
+                validations.append({"name": "DXY (Dollar Index)", "ok": True,
+                                    "detail": f"{dxy} compatible"})
+                validations.append({"name": "US 10Y Yields",       "ok": True,
+                                    "detail": f"{yields} compatible"})
+            try:
+                cot_trend_log, cot_dt = fetch_cot_sentiment(sym) if TM_OK else ("NEUTRAL", {})
+                if cot_trend_log != "NEUTRAL":
+                    validations.append({"name": "COT institutionnel", "ok": True,
+                                        "detail": f"Pros {cot_trend_log} ({cot_dt.get('net_pct',0):+.1f}% net)"})
+            except Exception: pass
+            if TM_OK and adx_val:
+                validations.append({"name": "Régime marché (ADX)", "ok": True,
+                                    "detail": f"{regime} ADX={adx_val}"})
+
             positions[sym] = {
                 "direction":            plan["direction"],
                 "entry":                plan["entry"],
@@ -717,6 +748,9 @@ def run():
                 "be_set":               False,
                 "tp1_taken":            False,
                 "trail_active":         False,
+                "open_time":            datetime.now(timezone.utc).isoformat(),
+                "chart_candles":        chart_candles,
+                "validations":          validations,
             }
             direction_fr = "va monter 📈" if bias == "LONG" else "va baisser 📉"
             notify(f"🎯 Nouveau pari sur {nice}",
