@@ -219,6 +219,13 @@ def in_killzone(market="forex"):
 
     if 7 <= h < 10:    return True, "Killzone Londres Open"
     if 12 <= h < 15:   return True, "Killzone NY Open"
+
+    # Forex : killzone NY mid-session étendue (15h-17h UTC)
+    # Beaucoup de mouvements après les news US sortent à 14h30 UTC,
+    # le retest et les vrais départs de tendance ont lieu 15h-17h.
+    if market == "forex" and 15 <= h < 17:
+        return True, "Killzone NY mid-session"
+
     if 18 <= h < 20:   return True, "Killzone NY PM"
 
     # Crypto a une killzone Asia en plus

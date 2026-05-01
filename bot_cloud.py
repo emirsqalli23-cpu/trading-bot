@@ -45,7 +45,7 @@ except Exception as _e:
 MARKET        = os.environ.get("MARKET", "crypto").lower()
 CAPITAL_START = 1000.0
 RISK_PCT      = 0.02
-MIN_RR        = 2.0
+MIN_RR        = 1.8 if os.environ.get("MARKET", "crypto").lower() == "forex" else 2.0
 MAX_POSITIONS = 2
 NTFY_TOPIC    = os.environ.get("NTFY_TOPIC", "nice-lens-ogc-emir")
 
@@ -551,17 +551,18 @@ def run():
                 bias = "LONG"
             elif s_h4["trend"] == "BEARISH" and s_h1["trend"] == "BEARISH":
                 bias = "SHORT"
-            elif MARKET == "gold" and d1_trend != "NEUTRAL":
-                # Or : assouplissement — D1 fort + au moins 1 TF aligné suffit.
-                # Pourquoi ? L'or a une volatilité élevée → H4 et H1 rarement
-                # parfaitement alignés simultanément. Mais si la tendance Daily
-                # est forte, un seul TF intermédiaire suffit comme confirmation.
+            elif MARKET in ("gold", "forex") and d1_trend != "NEUTRAL":
+                # Or & Forex : assouplissement — D1 fort + au moins 1 TF aligné suffit.
+                # Pourquoi ? H4 et H1 sont rarement parfaitement alignés simultanément.
+                # Mais si la tendance Daily est claire, un seul TF intermédiaire suffit
+                # comme confirmation. La D1 reste le filtre fort.
+                emoji = "💛" if MARKET == "gold" else "💱"
                 if d1_trend == "BULLISH" and (s_h4["trend"] == "BULLISH" or s_h1["trend"] == "BULLISH"):
                     bias = "LONG"
-                    print(f"  💛 Or assoupli : D1={d1_trend} + (H4={s_h4['trend']} | H1={s_h1['trend']}) → LONG")
+                    print(f"  {emoji} {MARKET} assoupli : D1={d1_trend} + (H4={s_h4['trend']} | H1={s_h1['trend']}) → LONG")
                 elif d1_trend == "BEARISH" and (s_h4["trend"] == "BEARISH" or s_h1["trend"] == "BEARISH"):
                     bias = "SHORT"
-                    print(f"  💛 Or assoupli : D1={d1_trend} + (H4={s_h4['trend']} | H1={s_h1['trend']}) → SHORT")
+                    print(f"  {emoji} {MARKET} assoupli : D1={d1_trend} + (H4={s_h4['trend']} | H1={s_h1['trend']}) → SHORT")
                 else:
                     print(f"⏸ {nice} | H4:{s_h4['trend']} H1:{s_h1['trend']} D1:{d1_trend} → WAIT")
                     sym_log["decision"] = "TREND_NOT_ALIGNED"
