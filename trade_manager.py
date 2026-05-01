@@ -464,6 +464,75 @@ def fetch_cot_sentiment(symbol):
     except Exception as e:
         return "NEUTRAL", {"reason": f"COT fetch KO: {e}"}
 
+# ── 13) US 10Y TREASURY YIELDS ────────────────────────────────────────────
+# Pourquoi ? Le rendement des obligations US 10 ans est la donnée #1 du marché.
+# Les pros la regardent en permanence. Mécanique simple :
+#
+#   Yields ↑ → Obligations rentables → USD attractif → Or ↓, EUR/USD ↓
+#   Yields ↓ → Obligations chères → USD moins demandé → Or ↑, EUR/USD ↑
+#
+# Bloomberg facture ces données 2000$/mois. Yahoo Finance les donne gratuit
+# via le symbole ^TNX (10-Year Treasury Note Yield).
+
+# Marchés impactés par les yields (et leur sens)
+YIELDS_AFFECTED = {
+    "GC=F":     "INVERSE",   # Yields ↑ → Or ↓
+    "XAUUSD=X": "INVERSE",
+    "EURUSD=X": "INVERSE",   # Yields US ↑ → USD fort → EUR/USD ↓
+    "GBPUSD=X": "INVERSE",
+}
+
+def fetch_10y_yield_trend():
+    """
+    Récupère la tendance du US 10Y Treasury Yield via Yahoo Finance (^TNX).
+    Renvoie 'BULLISH' (yields montent), 'BEARISH' (yields baissent), 'NEUTRAL'.
+
+    Méthode : EMA50 sur D1, marge 1% (les yields sont volatils).
+    """
+    try:
+        url = "https://query1.finance.yahoo.com/v8/finance/chart/%5ETNX?interval=1d&range=200d"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        data = json.loads(urllib.request.urlopen(req, timeout=10).read())
+        if data["chart"].get("error"): return "NEUTRAL"
+        result = data["chart"]["result"][0]
+        closes = [c for c in result["indicators"]["quote"][0]["close"] if c is not None]
+        if len(closes) < 50: return "NEUTRAL"
+
+        # EMA50
+        ema = closes[0]
+        k = 2 / 51
+        for c in closes[1:]:
+            ema = c * k + ema * (1 - k)
+        last = closes[-1]
+
+        # Marge 1% (yields sont volatils, on évite les faux signaux)
+        if last > ema * 1.01: return "BULLISH"
+        if last < ema * 0.99: return "BEARISH"
+        return "NEUTRAL"
+    except Exception as e:
+        print(f"  ↪ 10Y yield fetch KO: {e}")
+        return "NEUTRAL"
+
+def yields_aligned(symbol, direction, yields_trend):
+    """
+    Le trade est-il aligné avec la tendance des yields US 10Y ?
+    NEUTRAL → laisse passer (pas de signal contradictoire).
+
+    Logique INVERSE :
+    - LONG Or/EUR/USD : on veut yields qui baissent → BEARISH OK, BULLISH bloque
+    - SHORT          : on veut yields qui montent → BULLISH OK, BEARISH bloque
+    """
+    if yields_trend == "NEUTRAL": return True, "Yields neutres"
+    rel = YIELDS_AFFECTED.get(symbol)
+    if not rel: return True, "Yields non applicable"
+
+    if rel == "INVERSE":
+        if direction == "LONG"  and yields_trend == "BULLISH":
+            return False, f"Yields haussiers (US 10Y monte) bloque LONG"
+        if direction == "SHORT" and yields_trend == "BEARISH":
+            return False, f"Yields baissiers (US 10Y baisse) bloque SHORT"
+    return True, f"Yields {yields_trend} compatible"
+
 def cot_aligned(direction, cot_trend):
     """
     Le trade est-il aligné avec le sentiment des pros ?

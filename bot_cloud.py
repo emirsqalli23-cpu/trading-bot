@@ -38,6 +38,7 @@ try:
         fetch_dxy_trend, dxy_aligned,
         compute_adx, market_regime,
         fetch_cot_sentiment, cot_aligned,
+        fetch_10y_yield_trend, yields_aligned,
     )
     TM_OK = True
 except Exception as _e:
@@ -497,12 +498,20 @@ def run():
 
     # ─── DXY Confluence : fetch 1× par cycle pour or + forex ─────────────
     dxy = "NEUTRAL"
+    yields = "NEUTRAL"
     if TM_OK and MARKET in ("forex", "gold"):
         dxy = fetch_dxy_trend()
         cycle_log["checks"]["dxy"] = {"trend": dxy}
         if dxy != "NEUTRAL":
             usd_state = "fort 💪" if dxy == "BULLISH" else "faible 📉"
             print(f"💵 DXY tendance : {dxy} (USD {usd_state})")
+
+        # ─── US 10Y Yields : 1× par cycle ─────────────────────────────
+        yields = fetch_10y_yield_trend()
+        cycle_log["checks"]["yields_10y"] = {"trend": yields}
+        if yields != "NEUTRAL":
+            arrow = "📈 ↑" if yields == "BULLISH" else "📉 ↓"
+            print(f"🏦 US 10Y Yields : {yields} {arrow}")
 
     for sym in SYMBOLS:
         nice = SYMBOLS_NICE.get(sym, sym)
@@ -629,6 +638,17 @@ def run():
                     continue
                 if dxy != "NEUTRAL":
                     print(f"  ✓ DXY confirme : {why_dxy}")
+
+                # Filtre US 10Y Yields (or + forex)
+                ok_y, why_y = yields_aligned(sym, bias, yields)
+                if not ok_y:
+                    print(f"🏦 {nice} bloqué : {why_y}")
+                    sym_log["decision"] = "BLOCKED_YIELDS"
+                    sym_log["details"].append(why_y)
+                    cycle_log["symbols"].append(sym_log)
+                    continue
+                if yields != "NEUTRAL":
+                    print(f"  ✓ Yields confirment : {why_y}")
 
             # Filtre COT (sentiment institutionnel — futures CFTC)
             if TM_OK:
