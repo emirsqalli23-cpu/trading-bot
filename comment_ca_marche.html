@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f1419">
+<title>🤖 Comment fonctionne mon bot</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: linear-gradient(180deg, #0f1419 0%, #1e293b 100%);
+    color: #e6e9ec; margin: 0; padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    min-height: 100vh;
+  }
+  h1 { font-size: 1.5em; margin: 0 0 4px; text-align: center; }
+  .subtitle { color: #94a3b8; font-size: 0.85em; text-align: center; margin-bottom: 20px; }
+
+  .stage {
+    background: #1a2027; border-radius: 16px; padding: 18px;
+    border: 1px solid #252d36; margin-bottom: 14px; position: relative;
+    opacity: 0; transform: translateY(20px);
+    animation: fadeUp 0.6s forwards;
+  }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+  .stage.s2  { animation-delay: 0.5s; }
+  .stage.s3  { animation-delay: 1.5s; }
+  .stage.s4  { animation-delay: 2.5s; }
+  .stage.s5  { animation-delay: 3.5s; }
+  .stage.s6  { animation-delay: 4.5s; }
+  .stage.s7  { animation-delay: 5.5s; }
+  .stage.s8  { animation-delay: 6.5s; }
+  .stage.s9  { animation-delay: 7.5s; }
+  .stage.s10 { animation-delay: 8.5s; background: linear-gradient(135deg,#065f46,#022c22); }
+  .stage.s11 { animation-delay: 9.5s; }
+  .stage.s12 { animation-delay: 10.5s; }
+  .stage.s13 { animation-delay: 11.5s; background: linear-gradient(135deg,#1e3a8a,#0c4a6e); }
+  .stage.s14 { animation-delay: 12.5s; }
+  .stage.s15 { animation-delay: 13.5s; background: linear-gradient(135deg,#14532d,#022c22); }
+
+  .robot-row {
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .robot {
+    flex-shrink: 0; font-size: 2.5em; line-height: 1;
+    animation: bounce 2s infinite ease-in-out;
+  }
+  @keyframes bounce {
+    0%,100% { transform: translateY(0) rotate(-2deg); }
+    50%     { transform: translateY(-4px) rotate(2deg); }
+  }
+  .bubble {
+    background: #0f1419; border-radius: 12px; padding: 12px 14px;
+    border: 1px solid #334155; flex: 1;
+    position: relative; font-size: 0.95em; line-height: 1.4;
+  }
+  .bubble::before {
+    content: ""; position: absolute; left: -8px; top: 14px;
+    width: 0; height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-right: 8px solid #334155;
+  }
+
+  .check {
+    display: inline-block; padding: 3px 8px; border-radius: 6px;
+    background: #064e3b; color: #6ee7b7; font-size: 0.75em;
+    font-weight: 700; margin-left: 6px;
+    animation: pop 0.4s ease-out;
+  }
+  @keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+  .price-anim {
+    font-size: 1.4em; font-weight: 800; color: #fbbf24;
+    text-align: center; margin: 8px 0;
+    animation: priceMove 1.2s ease-in-out;
+  }
+  @keyframes priceMove { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+  .progress-bar {
+    background: #0f1419; border-radius: 6px; height: 12px; overflow: hidden;
+    margin: 8px 0; position: relative;
+  }
+  .progress-bar > div {
+    background: linear-gradient(90deg, #ef4444, #fbbf24, #22c55e);
+    height: 100%; width: 0%; border-radius: 6px;
+    animation: fillBar 2s 9s ease-out forwards;
+  }
+  @keyframes fillBar { to { width: 60%; } }
+
+  .progress-bar2 > div { animation: fillBar2 2s 11s ease-out forwards; }
+  @keyframes fillBar2 { to { width: 100%; } }
+
+  .pl-tag {
+    display: inline-block; padding: 4px 10px; border-radius: 8px;
+    font-weight: 700; font-size: 0.9em;
+  }
+  .pl-pos { background: #14532d; color: #86efac; }
+  .pl-neg { background: #7f1d1d; color: #fca5a5; }
+
+  .replay-btn {
+    display: block; margin: 20px auto;
+    background: #2563eb; color: white; border: none; padding: 12px 24px;
+    border-radius: 10px; font-size: 1em; font-weight: 600; cursor: pointer;
+  }
+  .replay-btn:active { transform: scale(0.96); }
+
+  .summary {
+    background: linear-gradient(135deg, #1e3a8a, #0c4a6e);
+    border-radius: 14px; padding: 16px; margin-top: 24px;
+    text-align: center;
+    opacity: 0;
+    animation: fadeUp 0.6s 14.5s forwards;
+  }
+  .summary .big { font-size: 2.2em; font-weight: 800; color: #86efac; }
+  .summary .label { color: #cbd5e1; font-size: 0.9em; }
+
+  .footer { text-align: center; color: #6b7785; font-size: 0.8em; margin: 20px 0 30px; }
+  .footer a { color: #3b82f6; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<h1>🤖 Comment fonctionne mon bot</h1>
+<div class="subtitle">Histoire fictive d'un trade sur l'or — étape par étape</div>
+
+<!-- Stage 1 : Réveil -->
+<div class="stage s1">
+  <div class="robot-row">
+    <div class="robot">🤖</div>
+    <div class="bubble">
+      <b>10h47 UTC, lundi matin</b><br>
+      « Bonjour ! Je me réveille pour analyser le marché de l'<b>or</b>... 🥇 »
+    </div>
+  </div>
+</div>
+
+<!-- Stage 2 : Killzone -->
+<div class="stage s2">
+  <div class="robot-row">
+    <div class="robot">⏰</div>
+    <div class="bubble">
+      <b>Vérification 1 : Killzone ICT</b><br>
+      « C'est entre 7h et 10h UTC = <b>Killzone Londres Open</b>. Les grandes banques sont actives. » <span class="check">✓ OK</span>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 3 : D1 trend -->
+<div class="stage s3">
+  <div class="robot-row">
+    <div class="robot">📅</div>
+    <div class="bubble">
+      <b>Vérification 2 : Tendance Daily</b><br>
+      « L'or monte sur les 50 derniers jours. <b>Tendance haussière confirmée.</b> Je vais chercher un LONG. » <span class="check">✓ OK</span>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 4 : H4+H1 -->
+<div class="stage s4">
+  <div class="robot-row">
+    <div class="robot">📊</div>
+    <div class="bubble">
+      <b>Vérification 3 : Multi-timeframe</b><br>
+      « Sur les 4 heures et 1 heure, le prix fait des sommets de plus en plus hauts. <b>Trend confirmé.</b> » <span class="check">✓ OK</span>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 5 : MSS -->
+<div class="stage s5">
+  <div class="robot-row">
+    <div class="robot">⚡</div>
+    <div class="bubble">
+      <b>Vérification 4 : Market Structure Shift</b><br>
+      « Le prix vient de casser un sommet récent. C'est le <b>signal d'entrée ICT</b> ! » <span class="check">✓ OK</span>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 6 : DXY -->
+<div class="stage s6">
+  <div class="robot-row">
+    <div class="robot">💵</div>
+    <div class="bubble">
+      <b>Vérification 5 : Le Dollar (DXY)</b><br>
+      « Le dollar baisse aujourd'hui. <b>Quand le dollar baisse, l'or monte</b>. Parfait. » <span class="check">✓ OK</span>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 7 : COT -->
+<div class="stage s7">
+  <div class="robot-row">
+    <div class="robot">🏛️</div>
+    <div class="bubble">
+      <b>Vérification 6 : Que font les pros ?</b><br>
+      « Les hedge funds ont <b>211 000 contrats LONG sur l'or</b> contre 52 000 SHORT. Les pros achètent ! » <span class="check">✓ OK</span>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 8 : News -->
+<div class="stage s8">
+  <div class="robot-row">
+    <div class="robot">📰</div>
+    <div class="bubble">
+      <b>Vérification 7 : Actualités</b><br>
+      « Pas de FOMC, pas de NFP, pas de news catastrophique dans les 30 prochaines minutes. » <span class="check">✓ OK</span>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 9 : R:R -->
+<div class="stage s9">
+  <div class="robot-row">
+    <div class="robot">🧮</div>
+    <div class="bubble">
+      <b>Calcul du risque</b><br>
+      « Si je risque <b>20 €</b> (2% de mon capital de 1000€), je peux gagner <b>50 €</b>. R:R = 2.5. C'est rentable ! » <span class="check">✓ OK</span>
+      <div class="progress-bar"><div></div></div>
+      <div style="font-size:0.8em;color:#94a3b8">Toutes les vérifications passées : 7/7</div>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 10 : Open trade -->
+<div class="stage s10">
+  <div class="robot-row">
+    <div class="robot">🚀</div>
+    <div class="bubble" style="background:#022c22; border-color:#22c55e">
+      <b>POSITION OUVERTE !</b><br>
+      « Achat sur l'or à <b>4 600 $</b>.<br>
+      ✋ Sécurité (SL) à 4 590 $<br>
+      🎯 Objectif (TP) à 4 625 $<br>
+      📲 Notification envoyée à toi sur ntfy ! »
+    </div>
+  </div>
+</div>
+
+<!-- Stage 11 : Price moves -->
+<div class="stage s11">
+  <div class="robot-row">
+    <div class="robot">📈</div>
+    <div class="bubble">
+      <b>2 heures plus tard...</b><br>
+      « Le prix monte à <b>4 612 $</b>. Mi-chemin vers mon objectif... »
+      <div class="price-anim">4 600 → 4 612 $ 📈</div>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 12 : Breakeven -->
+<div class="stage s12">
+  <div class="robot-row">
+    <div class="robot">🛡️</div>
+    <div class="bubble">
+      <b>Mode Breakeven activé</b><br>
+      « Je déplace la sécurité (SL) à mon prix d'achat 4 600 $. <b>Maintenant je ne peux plus rien perdre.</b> » <span class="check">SAFE</span>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 13 : TP partial -->
+<div class="stage s13">
+  <div class="robot-row">
+    <div class="robot">💰</div>
+    <div class="bubble" style="background:#0c4a6e">
+      <b>50% sécurisé à l'objectif</b><br>
+      « Le prix touche 4 625 $. Je <b>vends la moitié</b> de ma position et j'encaisse <b>+25 €</b> sur la moitié. »<br>
+      « L'autre moitié continue avec un trailing stop. »
+      <div class="progress-bar progress-bar2"><div></div></div>
+      <div style="font-size:0.8em;color:#86efac;margin-top:4px">+25 € verrouillés ✓</div>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 14 : Trailing -->
+<div class="stage s14">
+  <div class="robot-row">
+    <div class="robot">🎯</div>
+    <div class="bubble">
+      <b>Trailing Stop actif</b><br>
+      « Le prix continue à monter. Je laisse courir mais ma sécurité (SL) suit le prix. <b>Si ça redescend, je sors avec un gain.</b> »
+      <div class="price-anim">4 625 → 4 660 $ 🚀</div>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 15 : Final exit -->
+<div class="stage s15">
+  <div class="robot-row">
+    <div class="robot">🎉</div>
+    <div class="bubble" style="background:#022c22; border-color:#22c55e">
+      <b>Trade clos avec gain !</b><br>
+      « Le prix redescend un peu et touche mon trailing SL à 4 645 $.<br>
+      Sortie finale : <b>+45 € sur la 2ème moitié</b>. »<br><br>
+      <span class="pl-tag pl-pos">🟢 GAIN TOTAL : +70 €</span>
+    </div>
+  </div>
+</div>
+
+<!-- Summary -->
+<div class="summary">
+  <div class="label">Résultat de ce trade fictif</div>
+  <div class="big">+70 € 🎯</div>
+  <div class="label">Risque pris : 20 € → Gain : 70 €</div>
+  <div class="label" style="margin-top:8px">Soit <b style="color:#fbbf24">3.5×</b> ce qui était risqué</div>
+</div>
+
+<button class="replay-btn" onclick="location.reload()">🔁 Rejouer l'animation</button>
+
+<div class="footer">
+  <a href="dashboard.html">← Retour au dashboard</a>
+</div>
+
+</body>
+</html>
