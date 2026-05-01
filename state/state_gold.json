@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-01T14:03:15.613083+00:00",
+  "timestamp": "2026-05-01T14:08:16.719695+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-01T14:03:14.637284+00:00",
+    "time": "2026-05-01T14:08:15.026463+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -23,14 +23,15 @@
     "symbols": [
       {
         "symbol": "Or",
-        "decision": "TREND_NOT_ALIGNED",
+        "decision": "AGAINST_D1",
         "details": [
-          "H4=BEARISH H1=BULLISH"
+          "LONG contre D1=BEARISH"
         ],
         "d1": "BEARISH",
-        "h4": "BEARISH",
+        "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": null
+        "mss": null,
+        "bias": "LONG"
       }
     ],
     "actions": [],
