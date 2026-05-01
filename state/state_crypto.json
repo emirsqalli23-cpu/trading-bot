@@ -21,10 +21,10 @@
       "time": "2026-04-29T18:12:01.339850+00:00"
     }
   ],
-  "timestamp": "2026-05-01T18:18:41.613754+00:00",
+  "timestamp": "2026-05-01T18:23:42.854844+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-01T18:18:39.207364+00:00",
+    "time": "2026-05-01T18:23:39.886233+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -73,7 +73,7 @@
         "d1": "BEARISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": null,
+        "mss": "BULLISH_MSS",
         "bias": "LONG"
       }
     ],
