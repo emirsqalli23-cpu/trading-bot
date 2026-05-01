@@ -1,6 +1,20 @@
 {
-  "capital": 941.1899999999999,
-  "positions": {},
+  "capital": 922.3699999999999,
+  "positions": {
+    "SOLUSD": {
+      "direction": "SHORT",
+      "entry": 84.84,
+      "sl": 85.43448,
+      "initial_sl": 85.43448,
+      "tp1": 81.4,
+      "rr1": 5.79,
+      "risk_amount": 18.82,
+      "initial_risk_amount": 18.82,
+      "be_set": false,
+      "tp1_taken": false,
+      "trail_active": false
+    }
+  },
   "trades": [
     {
       "symbol": "BTC/USD",
@@ -21,10 +35,10 @@
       "time": "2026-04-29T18:12:01.339850+00:00"
     }
   ],
-  "timestamp": "2026-05-01T18:49:08.669474+00:00",
+  "timestamp": "2026-05-01T19:19:20.136047+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-01T18:49:06.246586+00:00",
+    "time": "2026-05-01T19:19:17.355031+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -44,40 +58,43 @@
         "symbol": "BTC/USD",
         "decision": "WAIT_MSS",
         "details": [
-          "Attendu BULLISH_MSS, actuel None"
+          "Attendu BULLISH_MSS, actuel BEARISH_MSS"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": null,
+        "mss": "BEARISH_MSS",
         "bias": "LONG"
       },
       {
         "symbol": "ETH/USD",
         "decision": "WAIT_MSS",
         "details": [
-          "Attendu BULLISH_MSS, actuel None"
+          "Attendu BULLISH_MSS, actuel BEARISH_MSS"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": null,
+        "mss": "BEARISH_MSS",
         "bias": "LONG"
       },
       {
         "symbol": "SOL/USD",
-        "decision": "AGAINST_D1",
+        "decision": "POSITION_OPENED",
         "details": [
-          "LONG contre D1=BEARISH"
+          "SHORT @ 84.8400 | risque 18.82$"
         ],
         "d1": "BEARISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
+        "h4": "BEARISH",
+        "h1": "BEARISH",
         "mss": "BEARISH_MSS",
-        "bias": "LONG"
+        "bias": "SHORT",
+        "rr": 5.79
       }
     ],
-    "actions": [],
+    "actions": [
+      "OUVERT SHORT SOL/USD"
+    ],
     "status": "ANALYZED"
   }
 }
