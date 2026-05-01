@@ -16,7 +16,7 @@
     "GBPUSD=X": {
       "direction": "LONG",
       "entry": 1.3482722043991089,
-      "sl": 1.3551861021995544,
+      "sl": 1.3552361021995545,
       "tp1": 1.367596983909607,
       "rr1": 3.19,
       "risk_amount": 11.46,
@@ -58,6 +58,41 @@
       "time": "2026-05-01T11:20:11.964506+00:00"
     }
   ],
-  "timestamp": "2026-05-01T12:00:31.728956+00:00",
-  "market": "forex"
+  "timestamp": "2026-05-01T12:05:32.019755+00:00",
+  "market": "forex",
+  "last_cycle": {
+    "time": "2026-05-01T12:05:30.647296+00:00",
+    "checks": {
+      "session": {
+        "ok": true,
+        "reason": "Sessions actives"
+      },
+      "daily_loss": {
+        "ok": true,
+        "pct": 6.3
+      },
+      "killzone": {
+        "ok": true,
+        "name": "Killzone NY Open"
+      }
+    },
+    "symbols": [
+      {
+        "symbol": "EUR/USD",
+        "decision": "POSITION_OPEN",
+        "details": [
+          "Position LONG en cours"
+        ]
+      },
+      {
+        "symbol": "GBP/USD",
+        "decision": "POSITION_OPEN",
+        "details": [
+          "Position LONG en cours"
+        ]
+      }
+    ],
+    "actions": [],
+    "status": "ANALYZED"
+  }
 }
