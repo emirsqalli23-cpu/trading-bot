@@ -376,6 +376,106 @@ def market_regime(adx_value):
     if adx_value <= 20:   return "RANGE"
     return "NEUTRAL"
 
+# ── 12) SENTIMENT INSTITUTIONNEL (COT Report) ─────────────────────────────
+# Le COT (Commitment of Traders) est publié chaque vendredi par la CFTC (US gov).
+# Il révèle les positions des "Large Speculators" = hedge funds, asset managers,
+# bref la smart money institutionnelle.
+#
+# Logique : si les pros sont massivement LONG sur l'or → biais haussier confirmé.
+# Si on veut SHORT or alors qu'ils sont 80% LONG → on rame contre la marée.
+#
+# Source : https://publicreporting.cftc.gov (API gratuite, données officielles)
+
+# Mapping marché → nom du contrat futures dans le COT
+COT_CONTRACTS = {
+    "GC=F":     "GOLD",
+    "XAUUSD=X": "GOLD",
+    "EURUSD=X": "EURO FX",
+    "GBPUSD=X": "BRITISH POUND",
+    # Crypto : BTC futures sur CME existent depuis 2017
+    "XBTUSD":   "BITCOIN",
+}
+
+# Cache simple : on télécharge max 1× par jour (le rapport sort hebdo)
+_COT_CACHE = {"date": None, "data": {}}
+
+def fetch_cot_sentiment(symbol):
+    """
+    Récupère le sentiment institutionnel des Large Specs sur le futures associé.
+    Renvoie ('BULLISH'/'BEARISH'/'NEUTRAL', detail_dict).
+
+    Calcul : net_position = (longs - shorts) / open_interest
+      - net_pct >  +20%  → BULLISH (pros majoritairement long)
+      - net_pct <  -20%  → BEARISH
+      - Entre        → NEUTRAL
+    """
+    contract = COT_CONTRACTS.get(symbol)
+    if not contract:
+        return "NEUTRAL", {"reason": "Pas de contrat COT pour ce symbole"}
+
+    today = datetime.now(timezone.utc).date().isoformat()
+
+    # Cache journalier (le rapport COT sort 1× par semaine)
+    if _COT_CACHE["date"] == today and contract in _COT_CACHE["data"]:
+        return _COT_CACHE["data"][contract]
+
+    # API SODA de la CFTC (legacy futures-only report)
+    where = f"market_and_exchange_names like '%{contract}%'"
+    params = urllib.parse.urlencode({
+        "$limit":  2,
+        "$where":  where,
+        "$order":  "report_date_as_yyyy_mm_dd DESC",
+    })
+    url = f"https://publicreporting.cftc.gov/resource/6dca-aqww.json?{params}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        data = json.loads(urllib.request.urlopen(req, timeout=15).read())
+        if not data:
+            return "NEUTRAL", {"reason": f"Pas de données COT pour {contract}"}
+
+        latest = data[0]
+        # Champs dispo : noncomm_positions_long_all, noncomm_positions_short_all, open_interest_all
+        longs  = float(latest.get("noncomm_positions_long_all",  0))
+        shorts = float(latest.get("noncomm_positions_short_all", 0))
+        oi     = float(latest.get("open_interest_all", 0))
+
+        if oi == 0:
+            return "NEUTRAL", {"reason": "Open interest nul"}
+
+        net_pct = (longs - shorts) / oi
+
+        if   net_pct >  0.20: trend = "BULLISH"
+        elif net_pct < -0.20: trend = "BEARISH"
+        else:                 trend = "NEUTRAL"
+
+        detail = {
+            "contract":   contract,
+            "report_date": latest.get("report_date_as_yyyy_mm_dd", "?")[:10],
+            "longs":      int(longs),
+            "shorts":     int(shorts),
+            "net_pct":    round(net_pct * 100, 1),
+            "trend":      trend,
+        }
+
+        _COT_CACHE["date"] = today
+        _COT_CACHE["data"][contract] = (trend, detail)
+        return trend, detail
+
+    except Exception as e:
+        return "NEUTRAL", {"reason": f"COT fetch KO: {e}"}
+
+def cot_aligned(direction, cot_trend):
+    """
+    Le trade est-il aligné avec le sentiment des pros ?
+    NEUTRAL → on laisse passer (pas de signal contradictoire)
+    """
+    if cot_trend == "NEUTRAL": return True, "COT neutre"
+    if direction == "LONG"  and cot_trend == "BEARISH":
+        return False, "Pros institutionnels SHORT → contradicte LONG"
+    if direction == "SHORT" and cot_trend == "BULLISH":
+        return False, "Pros institutionnels LONG → contradicte SHORT"
+    return True, f"Pros {cot_trend} compatible"
+
 def dxy_aligned(symbol, direction, dxy_trend):
     """
     Le trade est-il aligné avec le DXY ?

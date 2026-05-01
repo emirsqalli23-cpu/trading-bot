@@ -37,6 +37,7 @@ try:
         daily_loss_exceeded, in_killzone, daily_bias, aligned_with_daily,
         fetch_dxy_trend, dxy_aligned,
         compute_adx, market_regime,
+        fetch_cot_sentiment, cot_aligned,
     )
     TM_OK = True
 except Exception as _e:
@@ -628,6 +629,20 @@ def run():
                     continue
                 if dxy != "NEUTRAL":
                     print(f"  ✓ DXY confirme : {why_dxy}")
+
+            # Filtre COT (sentiment institutionnel — futures CFTC)
+            if TM_OK:
+                cot_trend, cot_detail = fetch_cot_sentiment(sym)
+                sym_log["cot"] = cot_trend
+                ok_cot, why_cot = cot_aligned(bias, cot_trend)
+                if not ok_cot:
+                    print(f"🏛️ {nice} bloqué : {why_cot}")
+                    sym_log["decision"] = "BLOCKED_COT"
+                    sym_log["details"].append(why_cot)
+                    cycle_log["symbols"].append(sym_log)
+                    continue
+                if cot_trend != "NEUTRAL" and "net_pct" in cot_detail:
+                    print(f"  ✓ COT confirme : pros {cot_trend} ({cot_detail['net_pct']:+.1f}% net)")
 
             # ATR calculé ICI — utilisé pour le SL de l'or + l'ajustement risque
             atr_now = None
