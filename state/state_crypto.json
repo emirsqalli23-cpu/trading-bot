@@ -35,10 +35,10 @@
       "time": "2026-04-29T18:12:01.339850+00:00"
     }
   ],
-  "timestamp": "2026-05-01T19:19:20.136047+00:00",
+  "timestamp": "2026-05-01T19:24:22.011146+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-01T19:19:17.355031+00:00",
+    "time": "2026-05-01T19:24:19.390052+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -58,43 +58,35 @@
         "symbol": "BTC/USD",
         "decision": "WAIT_MSS",
         "details": [
-          "Attendu BULLISH_MSS, actuel BEARISH_MSS"
+          "Attendu BULLISH_MSS, actuel None"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": "BEARISH_MSS",
+        "mss": null,
         "bias": "LONG"
       },
       {
         "symbol": "ETH/USD",
         "decision": "WAIT_MSS",
         "details": [
-          "Attendu BULLISH_MSS, actuel BEARISH_MSS"
+          "Attendu BULLISH_MSS, actuel None"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": "BEARISH_MSS",
+        "mss": null,
         "bias": "LONG"
       },
       {
         "symbol": "SOL/USD",
-        "decision": "POSITION_OPENED",
+        "decision": "POSITION_OPEN",
         "details": [
-          "SHORT @ 84.8400 | risque 18.82$"
-        ],
-        "d1": "BEARISH",
-        "h4": "BEARISH",
-        "h1": "BEARISH",
-        "mss": "BEARISH_MSS",
-        "bias": "SHORT",
-        "rr": 5.79
+          "Position SHORT en cours"
+        ]
       }
     ],
-    "actions": [
-      "OUVERT SHORT SOL/USD"
-    ],
+    "actions": [],
     "status": "ANALYZED"
   }
 }
