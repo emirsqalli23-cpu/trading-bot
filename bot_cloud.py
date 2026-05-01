@@ -241,6 +241,14 @@ def run():
     positions = state["positions"]
     trades    = state["trades"]
 
+    # Log du cycle pour le dashboard
+    cycle_log = {
+        "time": datetime.now(timezone.utc).isoformat(),
+        "checks": {},
+        "symbols": [],
+        "actions": [],
+    }
+
     print(f"[{datetime.now().strftime('%H:%M:%S')}] [{LABEL}] Capital:{capital:.2f}$ | Pos:{list(positions.keys())} | News:{NEWS_OK} | TM:{TM_OK}")
 
     # ─── 0. SHOCK NEWS : sortie d'urgence ─────────────────────────────────
@@ -356,8 +364,11 @@ def run():
             save_state(state)
             return
 
+        cycle_log["checks"]["session"] = {"ok": True, "reason": "Sessions actives"}
+
         # FEATURE 1 : limite de perte quotidienne
         loss_blocked, today_pct = daily_loss_exceeded(state, CAPITAL_START)
+        cycle_log["checks"]["daily_loss"] = {"ok": not loss_blocked, "pct": today_pct}
         if loss_blocked:
             msg = f"-{abs(today_pct)}% sur la journée — pause jusqu'à demain"
             print(f"🛑 {msg}")
@@ -366,9 +377,11 @@ def run():
                        f"Le bot a perdu {today_pct}% aujourd'hui.\nIl arrête les nouveaux trades jusqu'à demain pour protéger le capital.",
                        priority=4, tags=["octagonal_sign"])
                 state["daily_lock_notified"] = True
+            cycle_log["status"] = "DAILY_LOSS_LOCK"
             state["capital"]   = capital
             state["positions"] = positions
             state["trades"]    = trades
+            state["last_cycle"] = cycle_log
             save_state(state)
             return
         # Reset le flag à minuit
@@ -377,12 +390,15 @@ def run():
 
         # FEATURE 2 : Killzones ICT
         in_kz, kz_name = in_killzone(MARKET)
+        cycle_log["checks"]["killzone"] = {"ok": in_kz, "name": kz_name or f"hors zone ({datetime.now(timezone.utc).hour}h UTC)"}
         if not in_kz:
             now_h = datetime.now(timezone.utc).hour
             print(f"⏰ Hors killzone ({now_h}h UTC) — pas de nouveau trade")
+            cycle_log["status"] = "WAIT_KILLZONE"
             state["capital"]   = capital
             state["positions"] = positions
             state["trades"]    = trades
+            state["last_cycle"] = cycle_log
             save_state(state)
             return
         else:
@@ -390,7 +406,15 @@ def run():
 
     for sym in SYMBOLS:
         nice = SYMBOLS_NICE.get(sym, sym)
-        if sym in positions or len(positions) >= MAX_POSITIONS:
+        sym_log = {"symbol": nice, "decision": "?", "details": []}
+        if sym in positions:
+            sym_log["decision"] = "POSITION_OPEN"
+            sym_log["details"].append(f"Position {positions[sym]['direction']} en cours")
+            cycle_log["symbols"].append(sym_log)
+            continue
+        if len(positions) >= MAX_POSITIONS:
+            sym_log["decision"] = "MAX_POSITIONS"
+            cycle_log["symbols"].append(sym_log)
             continue
 
         # Filtre news
@@ -398,6 +422,9 @@ def run():
             allowed, reason = can_open_position(sym)
             if not allowed:
                 print(f"🛡️ {nice} bloqué par news : {reason}")
+                sym_log["decision"] = "BLOCKED_NEWS"
+                sym_log["details"].append(reason or "")
+                cycle_log["symbols"].append(sym_log)
                 continue
         except Exception as e:
             print(f"⚠️ News filter {sym}: {e}")
@@ -427,17 +454,30 @@ def run():
             mss  = check_mss(c_m5)
             ob_bull, ob_bear = find_ob(c_h1)
 
+            sym_log["d1"] = d1_trend
+            sym_log["h4"] = s_h4["trend"]
+            sym_log["h1"] = s_h1["trend"]
+            sym_log["mss"] = mss
+
             if s_h4["trend"] == "BULLISH" and s_h1["trend"] == "BULLISH":
                 bias = "LONG"
             elif s_h4["trend"] == "BEARISH" and s_h1["trend"] == "BEARISH":
                 bias = "SHORT"
             else:
                 print(f"⏸ {nice} | H4:{s_h4['trend']} H1:{s_h1['trend']} → WAIT")
+                sym_log["decision"] = "TREND_NOT_ALIGNED"
+                sym_log["details"].append(f"H4={s_h4['trend']} H1={s_h1['trend']}")
+                cycle_log["symbols"].append(sym_log)
                 continue
+
+            sym_log["bias"] = bias
 
             # FEATURE 3 (bis) : refuser si pas aligné avec la tendance D1
             if TM_OK and not aligned_with_daily(bias, d1_trend):
                 print(f"🚫 {nice} | {bias} contre tendance D1 ({d1_trend}) → SKIP")
+                sym_log["decision"] = "AGAINST_D1"
+                sym_log["details"].append(f"{bias} contre D1={d1_trend}")
+                cycle_log["symbols"].append(sym_log)
                 continue
             if d1_trend != "NEUTRAL":
                 print(f"  ✓ Aligné avec D1 ({d1_trend})")
@@ -445,6 +485,9 @@ def run():
             expected_mss = "BULLISH_MSS" if bias == "LONG" else "BEARISH_MSS"
             if mss != expected_mss:
                 print(f"⏳ {nice} | Biais:{bias} | MSS attendu:{expected_mss} actuel:{mss}")
+                sym_log["decision"] = "WAIT_MSS"
+                sym_log["details"].append(f"Attendu {expected_mss}, actuel {mss}")
+                cycle_log["symbols"].append(sym_log)
                 continue
 
             # Filtre corrélation
@@ -452,12 +495,19 @@ def run():
                 conflict, other = has_correlated_position(sym, bias, positions)
                 if conflict:
                     print(f"🔗 {nice} bloqué : déjà {bias} sur {SYMBOLS_NICE.get(other, other)} (corrélé)")
+                    sym_log["decision"] = "BLOCKED_CORRELATION"
+                    sym_log["details"].append(f"Déjà {bias} sur {SYMBOLS_NICE.get(other, other)}")
+                    cycle_log["symbols"].append(sym_log)
                     continue
 
             plan = build_plan(bias, s_h4, ob_bull, ob_bear)
             print(f"📋 {nice} | {bias} | Entrée:{plan['entry']:.4f} | R:R:{plan['rr1']}")
+            sym_log["rr"] = plan["rr1"]
             if not plan["valid"]:
                 print(f"❌ {nice} R:R {plan['rr1']} < {MIN_RR}")
+                sym_log["decision"] = "RR_TOO_LOW"
+                sym_log["details"].append(f"R:R {plan['rr1']} < {MIN_RR}")
+                cycle_log["symbols"].append(sym_log)
                 continue
 
             # Risque ajusté par ATR (volatilité)
@@ -487,15 +537,25 @@ def run():
             direction_fr = "va monter 📈" if bias == "LONG" else "va baisser 📉"
             notify(f"🎯 Nouveau pari sur {nice}",
                    f"{nice} {direction_fr}\nMise : {risk_amount:.0f}$\nGain potentiel : +{round(risk_amount * plan['rr1']):.0f}$",
-                   priority=4, tags=["rocket" if bias == "LONG" else "chart_with_downwards_trend"])
+                   priority=5, tags=["rocket" if bias == "LONG" else "chart_with_downwards_trend"])
             print(f"✅ POSITION OUVERTE {nice} {bias} | Risque: {risk_amount:.2f}$")
+            sym_log["decision"] = "POSITION_OPENED"
+            sym_log["details"].append(f"{bias} @ {plan['entry']:.4f} | risque {risk_amount}$")
+            cycle_log["symbols"].append(sym_log)
+            cycle_log["actions"].append(f"OUVERT {bias} {nice}")
         except Exception as e:
             print(f"⚠️ Erreur analyse {sym}: {e}")
+            sym_log["decision"] = "ERROR"
+            sym_log["details"].append(str(e)[:60])
+            cycle_log["symbols"].append(sym_log)
 
     # ─── 3. SAUVEGARDER ──────────────────────────────────────────────────
-    state["capital"]   = capital
-    state["positions"] = positions
-    state["trades"]    = trades
+    if "status" not in cycle_log:
+        cycle_log["status"] = "ANALYZED"
+    state["capital"]    = capital
+    state["positions"]  = positions
+    state["trades"]     = trades
+    state["last_cycle"] = cycle_log
     save_state(state)
 
     wins = [t for t in trades if t["pnl"] > 0]

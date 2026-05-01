@@ -2,85 +2,158 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Trading Bot Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1419">
+<title>📊 Bot Trading</title>
 <style>
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: #0f1419; color: #e6e9ec; margin: 0; padding: 20px;
+    background: #0f1419; color: #e6e9ec; margin: 0;
+    padding: 12px; padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    min-height: 100vh;
   }
-  h1 { font-size: 1.8em; margin: 0 0 6px; }
-  .subtitle { color: #6b7785; font-size: 0.9em; margin-bottom: 20px; }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 16px;
+  h1 { font-size: 1.4em; margin: 0 0 4px; }
+  .subtitle { color: #6b7785; font-size: 0.8em; margin-bottom: 16px; }
+  .live-dot {
+    display: inline-block; width: 8px; height: 8px; background: #22c55e;
+    border-radius: 50%; margin-right: 6px; animation: pulse 1.5s infinite;
   }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .total-bar {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+    border-radius: 14px; padding: 16px; margin-bottom: 14px;
+  }
+  .total-bar .big { font-size: 2.2em; font-weight: 800; letter-spacing: -1px; }
+  .total-bar .sub { font-size: 0.9em; color: #cbd5e1; }
+
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 12px;
+    background: #1a2027; padding: 4px; border-radius: 10px;
+  }
+  .tab {
+    flex: 1; padding: 10px; text-align: center; border-radius: 8px;
+    font-weight: 600; font-size: 0.9em; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab.active { background: #2563eb; color: white; }
+  .tab:not(.active) { color: #94a3b8; }
+
   .card {
-    background: #1a2027; border-radius: 12px; padding: 20px;
+    background: #1a2027; border-radius: 12px; padding: 14px; margin-bottom: 10px;
     border: 1px solid #252d36;
   }
-  .card h2 {
-    margin: 0 0 12px; font-size: 1.2em;
+  .card h3 { margin: 0 0 8px; font-size: 1em; color: #cbd5e1; font-weight: 600; }
+
+  .pos { color: #22c55e; }
+  .neg { color: #ef4444; }
+  .neu { color: #94a3b8; }
+
+  .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.95em; }
+  .label { color: #94a3b8; }
+
+  /* Pipeline */
+  .pipeline { font-size: 0.88em; }
+  .step {
+    padding: 8px 12px; margin: 4px 0; border-radius: 8px;
+    border-left: 3px solid #475569;
+    background: #2c3540;
     display: flex; align-items: center; gap: 8px;
   }
-  .big {
-    font-size: 2.4em; font-weight: 700; margin: 8px 0; letter-spacing: -1px;
+  .step.ok    { border-left-color: #22c55e; background: #052e1f; }
+  .step.warn  { border-left-color: #eab308; background: #2e2810; }
+  .step.bad   { border-left-color: #ef4444; background: #2e1010; }
+  .step.info  { border-left-color: #3b82f6; background: #0c1f3d; }
+  .step .ico { font-size: 1.2em; flex-shrink: 0; }
+  .step .txt { flex: 1; }
+  .step .sub { color: #94a3b8; font-size: 0.85em; margin-top: 2px; }
+
+  .pos-card {
+    background: #2c3540; border-radius: 8px; padding: 10px;
+    margin-top: 6px; font-size: 0.9em;
   }
-  .pos { color: #4ade80; }
-  .neg { color: #f87171; }
-  .neu { color: #94a3b8; }
-  .row { display: flex; justify-content: space-between; padding: 4px 0; }
-  .label { color: #94a3b8; }
-  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
+  .pos-card .head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px;
+  }
+  .pos-card .price-row {
+    color: #94a3b8; font-size: 0.8em; margin-top: 4px;
+  }
+  .flags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .flag {
+    background: #1e3a5f; color: #93c5fd; padding: 2px 8px;
+    border-radius: 4px; font-size: 0.75em; font-weight: 500;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.82em; }
   th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid #252d36; }
-  th { color: #94a3b8; font-weight: 500; }
-  .total {
-    background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
-    grid-column: 1 / -1;
-  }
-  .total .big { font-size: 3em; }
+  th { color: #94a3b8; font-weight: 500; font-size: 0.8em; }
+
   .badge {
-    display: inline-block; padding: 2px 8px; border-radius: 4px;
-    font-size: 0.75em; font-weight: 600;
+    display: inline-block; padding: 2px 7px; border-radius: 4px;
+    font-size: 0.7em; font-weight: 600; white-space: nowrap;
   }
-  .badge-tp { background: #064e3b; color: #6ee7b7; }
-  .badge-sl { background: #7f1d1d; color: #fca5a5; }
-  .badge-be { background: #1e3a5f; color: #93c5fd; }
-  .badge-trail { background: #422006; color: #fdba74; }
-  .badge-shock { background: #581c87; color: #d8b4fe; }
-  .footer { color: #6b7785; font-size: 0.8em; text-align: center; margin-top: 30px; }
-  .refresh { color: #6b7785; cursor: pointer; }
-  .open-pos { background: #2c3540; border-radius: 6px; padding: 10px; margin-top: 8px; font-size: 0.9em; }
+  .b-tp { background: #064e3b; color: #6ee7b7; }
+  .b-sl { background: #7f1d1d; color: #fca5a5; }
+  .b-be { background: #1e3a5f; color: #93c5fd; }
+  .b-tr { background: #422006; color: #fdba74; }
+  .b-sk { background: #581c87; color: #d8b4fe; }
+
+  .footer { color: #6b7785; font-size: 0.75em; text-align: center; margin: 20px 0; }
+  .refresh-btn {
+    background: #2563eb; color: white; border: none; padding: 8px 16px;
+    border-radius: 6px; font-size: 0.85em; cursor: pointer;
+  }
+  .toggle-detail {
+    color: #3b82f6; font-size: 0.85em; cursor: pointer;
+    text-align: center; padding: 6px; user-select: none;
+  }
+  .hidden { display: none; }
 </style>
 </head>
 <body>
-<h1>📊 Trading Bot Dashboard</h1>
+
+<h1><span class="live-dot"></span>Bot Trading</h1>
 <div class="subtitle">
-  Mis à jour : <span id="lastUpdate">…</span>
-  <span class="refresh" onclick="loadAll()">🔄 Refresh</span>
+  Mis à jour : <span id="lastUpdate">…</span> · auto refresh 30s
 </div>
 
-<div class="grid" id="grid">
-  <div class="card"><h2>Chargement…</h2></div>
+<div class="total-bar">
+  <div style="font-size:0.85em; opacity:0.85">💰 Total des 3 bots</div>
+  <div class="big" id="totalCap">…</div>
+  <div class="sub" id="totalSub">…</div>
 </div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="forex">💱 Forex</div>
+  <div class="tab" data-tab="gold">🥇 Or</div>
+  <div class="tab" data-tab="crypto">🪙 Crypto</div>
+</div>
+
+<div id="content"></div>
 
 <div class="footer">
-  Données depuis github.com/emirsqalli23-cpu/trading-bot — auto-refresh toutes les 60s
+  Données : github.com/emirsqalli23-cpu/trading-bot
 </div>
 
 <script>
 const REPO = "emirsqalli23-cpu/trading-bot";
-const MARKETS = [
-  { key: "crypto", emoji: "🪙", label: "Crypto",  desc: "BTC/ETH/SOL" },
-  { key: "gold",   emoji: "🥇", label: "Or",      desc: "XAU/USD" },
-  { key: "forex",  emoji: "💱", label: "Forex",   desc: "EUR/USD, GBP/USD" },
-];
-const CAPITAL_START = 1000.0;
+const MARKETS = {
+  crypto: { emoji: "🪙", label: "Crypto", desc: "BTC/ETH/SOL" },
+  gold:   { emoji: "🥇", label: "Or",     desc: "XAU/USD" },
+  forex:  { emoji: "💱", label: "Forex",  desc: "EUR/USD, GBP/USD" },
+};
+const CAP_START = 1000;
+let states = {};
+let activeTab = "forex";
 
 async function fetchState(market) {
-  const url = `https://raw.githubusercontent.com/${REPO}/main/state/state_${market}.json?nocache=${Date.now()}`;
   try {
+    const url = `https://raw.githubusercontent.com/${REPO}/main/state/state_${market}.json?t=${Date.now()}`;
     const r = await fetch(url);
     if (!r.ok) return null;
     return await r.json();
@@ -88,96 +161,199 @@ async function fetchState(market) {
 }
 
 function fmt(n, sign=true) {
-  const s = (n >= 0 && sign ? "+" : "") + n.toFixed(0);
-  return s;
+  return (n >= 0 && sign ? "+" : "") + n.toFixed(0);
 }
 
 function badgeFor(type) {
   const map = {
-    "TP": "badge-tp", "TP_PARTIAL": "badge-tp", "TP_EXTENDED": "badge-tp",
-    "SL": "badge-sl", "BE": "badge-be", "TRAIL_EXIT": "badge-trail",
-    "SHOCK_EXIT": "badge-shock"
+    "TP": "b-tp", "TP_PARTIAL": "b-tp", "TP_EXTENDED": "b-tp",
+    "SL": "b-sl", "BE": "b-be", "TRAIL_EXIT": "b-tr",
+    "SHOCK_EXIT": "b-sk"
   };
   return `<span class="badge ${map[type] || ''}">${type}</span>`;
 }
 
-function renderMarket(m, state) {
-  const cap = state ? state.capital : CAPITAL_START;
+function howLongAgo(iso) {
+  if (!iso) return "?";
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60)    return `${Math.floor(diff)}s`;
+  if (diff < 3600)  return `${Math.floor(diff/60)}min`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h`;
+  return `${Math.floor(diff/86400)}j`;
+}
+
+// Dictionary pour traduire les decisions du bot en français
+const DECISIONS = {
+  "POSITION_OPEN":      { ico: "📂", cls: "info", txt: "Position en cours" },
+  "POSITION_OPENED":    { ico: "🚀", cls: "ok",   txt: "Nouvelle position ouverte !" },
+  "MAX_POSITIONS":      { ico: "🛑", cls: "warn", txt: "Max positions atteint" },
+  "BLOCKED_NEWS":       { ico: "📰", cls: "warn", txt: "Bloqué par news" },
+  "BLOCKED_CORRELATION":{ ico: "🔗", cls: "warn", txt: "Bloqué par corrélation" },
+  "TREND_NOT_ALIGNED":  { ico: "↔️",  cls: "info", txt: "Tendances H4/H1 non alignées" },
+  "AGAINST_D1":         { ico: "🚫", cls: "warn", txt: "Contre la tendance Daily" },
+  "WAIT_MSS":           { ico: "⏳", cls: "info", txt: "Attend confirmation MSS" },
+  "RR_TOO_LOW":         { ico: "📉", cls: "warn", txt: "Ratio Risk/Reward trop bas" },
+  "ERROR":              { ico: "⚠️",  cls: "bad",  txt: "Erreur technique" },
+};
+
+function renderPipeline(state) {
+  if (!state) return "";
+  const c = state.last_cycle;
+  if (!c) return "<div class='card'><h3>🤖 Activité du bot</h3><div class='step warn'>⏳ Pas encore de cycle enregistré</div></div>";
+
+  let html = `<div class="card"><h3>🤖 Dernier cycle <span style="color:#6b7785;font-weight:400;font-size:0.85em">il y a ${howLongAgo(c.time)}</span></h3>`;
+  html += `<div class="pipeline">`;
+
+  // Checks globaux
+  if (c.checks?.session) {
+    const k = c.checks.session;
+    html += `<div class="step ${k.ok ? 'ok' : 'warn'}"><div class="ico">${k.ok ? '✅' : '🛌'}</div><div class="txt">${k.ok ? 'Session active' : 'Hors session'}<div class="sub">${k.reason || ''}</div></div></div>`;
+  }
+  if (c.checks?.daily_loss) {
+    const k = c.checks.daily_loss;
+    html += `<div class="step ${k.ok ? 'ok' : 'bad'}"><div class="ico">${k.ok ? '💚' : '🛑'}</div><div class="txt">${k.ok ? 'Limite quotidienne OK' : 'Limite -3% dépassée'}<div class="sub">P&L jour : ${k.pct >= 0 ? '+' : ''}${k.pct}%</div></div></div>`;
+  }
+  if (c.checks?.killzone) {
+    const k = c.checks.killzone;
+    html += `<div class="step ${k.ok ? 'ok' : 'warn'}"><div class="ico">${k.ok ? '🎯' : '⏰'}</div><div class="txt">${k.ok ? 'Killzone ICT active' : 'Hors killzone'}<div class="sub">${k.name || ''}</div></div></div>`;
+  }
+
+  // Status global
+  if (c.status === "WAIT_KILLZONE") html += `<div class="step info"><div class="ico">💤</div><div class="txt">Bot en attente — pas de nouveau trade ce cycle</div></div>`;
+  if (c.status === "DAILY_LOSS_LOCK") html += `<div class="step bad"><div class="ico">🛑</div><div class="txt">Trading suspendu jusqu'à demain</div></div>`;
+
+  // Actions exécutées
+  if (c.actions && c.actions.length) {
+    c.actions.forEach(a => {
+      html += `<div class="step ok"><div class="ico">⚡</div><div class="txt">${a}</div></div>`;
+    });
+  }
+
+  // Symboles analysés
+  if (c.symbols && c.symbols.length) {
+    html += `<div style="margin-top:10px;color:#94a3b8;font-size:0.85em">Analyse par symbole :</div>`;
+    c.symbols.forEach(s => {
+      const d = DECISIONS[s.decision] || { ico: '❓', cls: 'info', txt: s.decision };
+      let extra = "";
+      if (s.bias) extra += `<span class="flag">${s.bias}</span>`;
+      if (s.h4 && s.h4 !== "NEUTRAL")  extra += `<span class="flag">H4 ${s.h4}</span>`;
+      if (s.d1 && s.d1 !== "NEUTRAL")  extra += `<span class="flag">D1 ${s.d1}</span>`;
+      if (s.rr) extra += `<span class="flag">R:R ${s.rr}</span>`;
+      html += `<div class="step ${d.cls}">
+        <div class="ico">${d.ico}</div>
+        <div class="txt">
+          <b>${s.symbol}</b> — ${d.txt}
+          ${s.details && s.details.length ? `<div class="sub">${s.details.join(' · ')}</div>` : ''}
+          ${extra ? `<div class="flags">${extra}</div>` : ''}
+        </div>
+      </div>`;
+    });
+  }
+
+  html += `</div></div>`;
+  return html;
+}
+
+function renderMarket(market) {
+  const m = MARKETS[market];
+  const state = states[market];
+  const cap = state ? state.capital : CAP_START;
   const trades = state ? (state.trades || []) : [];
   const pos = state ? (state.positions || {}) : {};
-  const pnl = cap - CAPITAL_START;
+  const pnl = cap - CAP_START;
   const wins = trades.filter(t => t.pnl > 0).length;
   const wr = trades.length ? Math.round(wins / trades.length * 100) : 0;
   const cls = pnl > 0 ? "pos" : pnl < 0 ? "neg" : "neu";
 
-  let posHtml = "";
-  for (const [sym, p] of Object.entries(pos)) {
-    const flags = [];
-    if (p.be_set)        flags.push("🛡️ BE");
-    if (p.tp1_taken)     flags.push("💰 50% pris");
-    if (p.trail_active)  flags.push("🎯 Trailing");
-    posHtml += `<div class="open-pos">
-      <b>${sym}</b> ${p.direction === "LONG" ? "📈 LONG" : "📉 SHORT"} —
-      Entrée: ${p.entry.toFixed(4)} | SL: ${p.sl.toFixed(4)} | TP: ${p.tp1.toFixed(4)}
-      ${flags.length ? "<br>" + flags.join(" • ") : ""}
+  let html = `<div class="card">
+    <div class="row"><span class="label">Capital</span><span style="font-size:1.4em;font-weight:700" class="${cls}">${cap.toFixed(0)}$</span></div>
+    <div class="row"><span class="label">P&L</span><span class="${cls}">${fmt(pnl)}$</span></div>
+    <div class="row"><span class="label">Trades</span><span>${trades.length} (${wr}% gagnés)</span></div>
+    <div class="row"><span class="label">Positions ouvertes</span><span>${Object.keys(pos).length}</span></div>
+  </div>`;
+
+  // Pipeline live
+  html += renderPipeline(state);
+
+  // Positions ouvertes
+  if (Object.keys(pos).length > 0) {
+    html += `<div class="card"><h3>📂 Positions en cours</h3>`;
+    for (const [sym, p] of Object.entries(pos)) {
+      const flags = [];
+      if (p.be_set)        flags.push("🛡️ Breakeven");
+      if (p.tp1_taken)     flags.push("💰 50% pris");
+      if (p.trail_active)  flags.push("🎯 Trailing");
+      const dirIco = p.direction === "LONG" ? "📈" : "📉";
+      html += `<div class="pos-card">
+        <div class="head"><b>${sym}</b><span>${dirIco} ${p.direction}</span></div>
+        <div class="price-row">Entrée: ${p.entry.toFixed(4)} | SL: ${p.sl.toFixed(4)} | TP: ${p.tp1.toFixed(4)}</div>
+        ${flags.length ? `<div class="flags">${flags.map(f => `<span class="flag">${f}</span>`).join('')}</div>` : ''}
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Trades récents
+  if (trades.length) {
+    const recent = trades.slice(-8).reverse();
+    const rows = recent.map(t => `
+      <tr>
+        <td>${t.time.slice(5,16).replace("T"," ")}</td>
+        <td>${t.symbol}</td>
+        <td>${badgeFor(t.type)}</td>
+        <td class="${t.pnl >= 0 ? 'pos' : 'neg'}">${fmt(t.pnl)}$</td>
+      </tr>
+    `).join("");
+    html += `<div class="card"><h3>📋 Trades récents</h3>
+      <table><thead><tr><th>Date</th><th>Sym.</th><th>Type</th><th>P&L</th></tr></thead><tbody>${rows}</tbody></table>
     </div>`;
   }
 
-  const recent = trades.slice(-5).reverse();
-  const tradeRows = recent.map(t => `
-    <tr>
-      <td>${t.time.slice(5,16).replace("T"," ")}</td>
-      <td>${t.symbol}</td>
-      <td>${badgeFor(t.type)}</td>
-      <td class="${t.pnl >= 0 ? 'pos' : 'neg'}">${fmt(t.pnl)}$</td>
-    </tr>
-  `).join("");
-
-  return `<div class="card">
-    <h2>${m.emoji} ${m.label} <span style="color:#6b7785;font-size:0.7em">${m.desc}</span></h2>
-    <div class="big ${cls}">${cap.toFixed(0)}$</div>
-    <div class="row"><span class="label">P&L total</span><span class="${cls}">${fmt(pnl)}$</span></div>
-    <div class="row"><span class="label">Win rate</span><span>${wr}% (${wins}/${trades.length})</span></div>
-    <div class="row"><span class="label">Positions ouvertes</span><span>${Object.keys(pos).length}</span></div>
-    ${posHtml}
-    ${trades.length ? `<table><thead><tr><th>Date</th><th>Crypto</th><th>Type</th><th>P&L</th></tr></thead><tbody>${tradeRows}</tbody></table>` : ''}
-  </div>`;
+  return html;
 }
 
-async function loadAll() {
-  const states = await Promise.all(MARKETS.map(m => fetchState(m.key)));
-  let totalCap = 0;
-  let totalPnl = 0;
-  let totalTrades = 0;
-  let totalWins = 0;
-  states.forEach(s => {
+function renderTotal() {
+  let totalCap = 0, totalPnl = 0, totalTrades = 0, totalWins = 0;
+  Object.entries(states).forEach(([k, s]) => {
     if (s) {
       totalCap += s.capital;
-      totalPnl += s.capital - CAPITAL_START;
+      totalPnl += s.capital - CAP_START;
       const trades = s.trades || [];
       totalTrades += trades.length;
       totalWins += trades.filter(t => t.pnl > 0).length;
     } else {
-      totalCap += CAPITAL_START;
+      totalCap += CAP_START;
     }
   });
   const totalWr = totalTrades ? Math.round(totalWins / totalTrades * 100) : 0;
-  const totalCls = totalPnl > 0 ? "pos" : totalPnl < 0 ? "neg" : "neu";
+  const cls = totalPnl > 0 ? "pos" : totalPnl < 0 ? "neg" : "neu";
+  const sign = totalPnl >= 0 ? "+" : "";
+  document.getElementById("totalCap").textContent = `${totalCap.toFixed(0)}$`;
+  document.getElementById("totalCap").className = "big " + cls;
+  document.getElementById("totalSub").innerHTML = `<span class="${cls}">${sign}${totalPnl.toFixed(0)}$ · ${(totalPnl/30).toFixed(1)}%</span> · ${totalTrades} trades · WR ${totalWr}%`;
+}
 
-  let html = `<div class="card total">
-    <h2>💰 Total des 3 bots</h2>
-    <div class="big ${totalCls}">${totalCap.toFixed(0)}$ <span style="font-size:0.4em;opacity:0.7">/ 3000$</span></div>
-    <div class="row"><span>P&L global</span><span class="${totalCls}">${fmt(totalPnl)}$ (${(totalPnl/30).toFixed(1)}%)</span></div>
-    <div class="row"><span>Trades cumulés</span><span>${totalTrades} (WR: ${totalWr}%)</span></div>
-  </div>`;
-
-  MARKETS.forEach((m, i) => { html += renderMarket(m, states[i]); });
-  document.getElementById("grid").innerHTML = html;
+async function loadAll() {
+  const ents = ["crypto", "gold", "forex"];
+  const arr = await Promise.all(ents.map(fetchState));
+  ents.forEach((k, i) => states[k] = arr[i]);
+  renderTotal();
+  document.getElementById("content").innerHTML = renderMarket(activeTab);
   document.getElementById("lastUpdate").textContent = new Date().toLocaleTimeString("fr-FR");
 }
 
+// Tab switching
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    activeTab = t.dataset.tab;
+    document.getElementById("content").innerHTML = renderMarket(activeTab);
+  });
+});
+
 loadAll();
-setInterval(loadAll, 60000);
+setInterval(loadAll, 30000);
 </script>
 </body>
 </html>
