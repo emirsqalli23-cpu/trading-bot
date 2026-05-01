@@ -36,6 +36,7 @@ try:
         compute_atr, adjust_risk_by_atr, in_active_session, has_correlated_position,
         daily_loss_exceeded, in_killzone, daily_bias, aligned_with_daily,
         fetch_dxy_trend, dxy_aligned,
+        compute_adx, market_regime,
     )
     TM_OK = True
 except Exception as _e:
@@ -634,6 +635,21 @@ def run():
             if TM_OK:
                 atr_now = compute_atr(c_h1, period=14)
                 avg_atr = compute_atr(c_h4, period=14) if len(c_h4) > 14 else atr_now
+
+            # ADX H4 : skip si le marché est en RANGE (la méthode ICT marche pas)
+            if TM_OK:
+                adx_val = compute_adx(c_h4, period=14)
+                regime = market_regime(adx_val)
+                sym_log["adx"] = adx_val
+                sym_log["regime"] = regime
+                if regime == "RANGE":
+                    print(f"📉 {nice} bloqué : marché en range (ADX={adx_val})")
+                    sym_log["decision"] = "BLOCKED_RANGE"
+                    sym_log["details"].append(f"ADX={adx_val} (marché plat)")
+                    cycle_log["symbols"].append(sym_log)
+                    continue
+                if adx_val:
+                    print(f"  📊 ADX H4 = {adx_val} ({regime})")
 
             plan = build_plan(bias, s_h4, ob_bull, ob_bear, atr_h1=atr_now)
             print(f"📋 {nice} | {bias} | Entrée:{plan['entry']:.4f} | SL:{plan['sl']:.4f} | R:R:{plan['rr1']}")

@@ -305,6 +305,77 @@ def _trend_from_closes(closes):
     if last < ema * 0.997: return "BEARISH"   # USD faible
     return "NEUTRAL"
 
+# ── 11) RÉGIME DE MARCHÉ (ADX) ────────────────────────────────────────────
+# Pourquoi ? La méthode ICT marche bien en marché TRENDING (qui suit une direction)
+# mais mal en marché RANGE (qui oscille latéralement). L'ADX mesure la force de
+# tendance (0-100). Les pros considèrent :
+#   - ADX > 25  : trend fort → trade
+#   - ADX 20-25 : trend modéré → trade avec prudence
+#   - ADX < 20  : range / consolidation → SKIP
+
+def compute_adx(candles, period=14):
+    """
+    ADX (Average Directional Index) = force de la tendance.
+    Renvoie un float entre 0 et 100, ou None si pas assez de données.
+    """
+    if len(candles) < period * 2 + 1:
+        return None
+
+    plus_dm  = []
+    minus_dm = []
+    trs      = []
+
+    for i in range(1, len(candles)):
+        prev, curr = candles[i-1], candles[i]
+        up_move   = curr["high"] - prev["high"]
+        down_move = prev["low"]  - curr["low"]
+        plus_dm.append(up_move   if (up_move   > down_move and up_move   > 0) else 0)
+        minus_dm.append(down_move if (down_move > up_move   and down_move > 0) else 0)
+        tr = max(curr["high"] - curr["low"],
+                 abs(curr["high"] - prev["close"]),
+                 abs(curr["low"]  - prev["close"]))
+        trs.append(tr)
+
+    # Wilder's smoothing
+    def wilder_smooth(values, p):
+        if len(values) < p: return []
+        out = [sum(values[:p])]
+        for v in values[p:]:
+            out.append(out[-1] - out[-1]/p + v)
+        return out
+
+    sm_plus  = wilder_smooth(plus_dm,  period)
+    sm_minus = wilder_smooth(minus_dm, period)
+    sm_tr    = wilder_smooth(trs,      period)
+
+    if not sm_tr or sm_tr[0] == 0: return None
+
+    dx_values = []
+    for i in range(len(sm_tr)):
+        if sm_tr[i] == 0: continue
+        plus_di  = 100 * sm_plus[i]  / sm_tr[i]
+        minus_di = 100 * sm_minus[i] / sm_tr[i]
+        denom = plus_di + minus_di
+        if denom == 0: continue
+        dx = 100 * abs(plus_di - minus_di) / denom
+        dx_values.append(dx)
+
+    if len(dx_values) < period: return None
+
+    # ADX = moyenne lissée des DX
+    adx = sum(dx_values[:period]) / period
+    for dx in dx_values[period:]:
+        adx = (adx * (period - 1) + dx) / period
+
+    return round(adx, 1)
+
+def market_regime(adx_value):
+    """Classification : TRENDING / RANGE / NEUTRAL."""
+    if adx_value is None: return "NEUTRAL"
+    if adx_value >= 25:   return "TRENDING"
+    if adx_value <= 20:   return "RANGE"
+    return "NEUTRAL"
+
 def dxy_aligned(symbol, direction, dxy_trend):
     """
     Le trade est-il aligné avec le DXY ?
