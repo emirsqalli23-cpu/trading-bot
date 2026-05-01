@@ -58,10 +58,10 @@
       "time": "2026-05-01T11:20:11.964506+00:00"
     }
   ],
-  "timestamp": "2026-05-01T14:56:16.512736+00:00",
+  "timestamp": "2026-05-01T15:01:19.342178+00:00",
   "market": "forex",
   "last_cycle": {
-    "time": "2026-05-01T14:56:15.403520+00:00",
+    "time": "2026-05-01T15:01:17.976811+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -72,27 +72,12 @@
         "pct": 6.3
       },
       "killzone": {
-        "ok": true,
-        "name": "Killzone NY Open"
+        "ok": false,
+        "name": "hors zone (15h UTC)"
       }
     },
-    "symbols": [
-      {
-        "symbol": "EUR/USD",
-        "decision": "POSITION_OPEN",
-        "details": [
-          "Position LONG en cours"
-        ]
-      },
-      {
-        "symbol": "GBP/USD",
-        "decision": "POSITION_OPEN",
-        "details": [
-          "Position LONG en cours"
-        ]
-      }
-    ],
+    "symbols": [],
     "actions": [],
-    "status": "ANALYZED"
+    "status": "WAIT_KILLZONE"
   }
 }
