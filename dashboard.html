@@ -135,6 +135,118 @@
   .vname { color: #cbd5e1; }
   .vdetail { color: #6b7785; font-size: 0.95em; }
 
+  /* ═══════ ROBOT MASCOTTE ANIMÉ ═══════ */
+  .robot-mascot {
+    position: fixed; bottom: 20px; right: 16px; z-index: 1000;
+    pointer-events: none; user-select: none;
+  }
+  .robot-mascot.clickable { pointer-events: auto; cursor: pointer; }
+  .robot-body {
+    width: 70px; height: 80px; position: relative;
+    animation: robotFloat 3s ease-in-out infinite;
+  }
+  @keyframes robotFloat {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-6px); }
+  }
+  .robot-svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); }
+
+  /* Antenne qui clignote */
+  .robot-antenna {
+    animation: antennaBlink 1.5s infinite;
+    transform-origin: center bottom;
+  }
+  @keyframes antennaBlink {
+    0%,90%,100% { fill: #fbbf24; }
+    95%         { fill: #fde047; }
+  }
+
+  /* Yeux qui clignent */
+  .robot-eye {
+    animation: blink 4s infinite;
+    transform-origin: center center;
+  }
+  @keyframes blink {
+    0%,93%,100% { transform: scaleY(1); }
+    96%         { transform: scaleY(0.1); }
+  }
+
+  /* Bras qui s'agitent */
+  .robot-arm-left  { animation: armWaveL 2s ease-in-out infinite; transform-origin: 18px 38px; }
+  .robot-arm-right { animation: armWaveR 2s ease-in-out infinite; transform-origin: 52px 38px; }
+  @keyframes armWaveL {
+    0%,100% { transform: rotate(0deg); }
+    50%     { transform: rotate(15deg); }
+  }
+  @keyframes armWaveR {
+    0%,100% { transform: rotate(0deg); }
+    50%     { transform: rotate(-15deg); }
+  }
+
+  /* Robot mode : sleeping */
+  .robot-mascot.sleeping .robot-body { animation: sleepBob 4s ease-in-out infinite; }
+  .robot-mascot.sleeping .robot-eye  { transform: scaleY(0.1); animation: none; }
+  .robot-mascot.sleeping .robot-antenna { animation: none; fill: #6b7785; }
+  @keyframes sleepBob {
+    0%,100% { transform: translateY(0) rotate(-3deg); }
+    50%     { transform: translateY(2px) rotate(3deg); }
+  }
+
+  /* Robot mode : excited (trade gagné) */
+  .robot-mascot.excited .robot-body { animation: jump 0.5s ease-in-out infinite; }
+  @keyframes jump {
+    0%,100% { transform: translateY(0) scale(1); }
+    50%     { transform: translateY(-12px) scale(1.05); }
+  }
+
+  /* Robot mode : working/analyzing */
+  .robot-mascot.working .robot-arm-left  { animation: typeL 0.4s ease-in-out infinite; }
+  .robot-mascot.working .robot-arm-right { animation: typeR 0.4s ease-in-out infinite; }
+  @keyframes typeL { 0%,100%{transform:rotate(0)} 50%{transform:rotate(-25deg)} }
+  @keyframes typeR { 0%,100%{transform:rotate(0)} 50%{transform:rotate(25deg)} }
+
+  /* Bulle de dialogue */
+  .robot-bubble {
+    position: absolute; bottom: 75px; right: 60px;
+    background: white; color: #0f1419; padding: 8px 12px;
+    border-radius: 12px; font-size: 0.78em; font-weight: 600;
+    max-width: 180px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: bubbleIn 0.4s ease-out;
+  }
+  .robot-bubble::after {
+    content: ""; position: absolute; bottom: -6px; right: 14px;
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid white;
+  }
+  @keyframes bubbleIn {
+    0%   { transform: scale(0); opacity: 0; }
+    70%  { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Particules de gain (étoiles) */
+  .star-particle {
+    position: absolute; font-size: 14px; pointer-events: none;
+    animation: starFly 1.5s ease-out forwards;
+  }
+  @keyframes starFly {
+    0%   { opacity: 1; transform: translate(0,0) scale(0.5) rotate(0deg); }
+    100% { opacity: 0; transform: translate(var(--tx,30px), var(--ty,-50px)) scale(1.5) rotate(360deg); }
+  }
+
+  /* zzz pour dormir */
+  .zzz {
+    position: absolute; top: -8px; right: -10px; font-size: 16px;
+    animation: zzzFade 2s infinite;
+  }
+  @keyframes zzzFade {
+    0%   { opacity: 0; transform: translate(0,5px); }
+    50%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(8px,-15px); }
+  }
+
   .footer { color: #6b7785; font-size: 0.75em; text-align: center; margin: 20px 0; }
   .refresh-btn {
     background: #2563eb; color: white; border: none; padding: 8px 16px;
@@ -170,6 +282,51 @@
 </div>
 
 <div id="content"></div>
+
+<!-- Robot mascotte animé -->
+<div class="robot-mascot clickable" id="robotMascot" onclick="robotClick()">
+  <div class="robot-bubble" id="robotBubble">Salut ! 👋</div>
+  <div class="zzz" id="robotZzz" style="display:none">💤</div>
+  <div class="robot-body">
+    <svg class="robot-svg" viewBox="0 0 70 80" xmlns="http://www.w3.org/2000/svg">
+      <!-- Antenne -->
+      <line x1="35" y1="10" x2="35" y2="3" stroke="#6b7785" stroke-width="1.5"/>
+      <circle class="robot-antenna" cx="35" cy="3" r="3" fill="#fbbf24"/>
+
+      <!-- Tête -->
+      <rect x="18" y="10" width="34" height="28" rx="6" fill="#3b82f6" stroke="#1e40af" stroke-width="1.5"/>
+      <rect x="22" y="14" width="26" height="14" rx="3" fill="#0f1419"/>
+
+      <!-- Yeux -->
+      <circle class="robot-eye" cx="29" cy="21" r="3" fill="#22c55e"/>
+      <circle class="robot-eye" cx="41" cy="21" r="3" fill="#22c55e"/>
+
+      <!-- Bouche (LED) -->
+      <rect x="28" y="31" width="14" height="3" rx="1" fill="#22c55e" opacity="0.8"/>
+
+      <!-- Corps -->
+      <rect x="20" y="40" width="30" height="28" rx="4" fill="#475569" stroke="#1e293b" stroke-width="1.5"/>
+      <circle cx="29" cy="50" r="2" fill="#22c55e"/>
+      <circle cx="35" cy="50" r="2" fill="#fbbf24"/>
+      <circle cx="41" cy="50" r="2" fill="#ef4444"/>
+      <rect x="26" y="56" width="18" height="8" rx="2" fill="#0f1419"/>
+
+      <!-- Bras -->
+      <g class="robot-arm-left">
+        <rect x="12" y="40" width="6" height="20" rx="3" fill="#475569" stroke="#1e293b" stroke-width="1"/>
+        <circle cx="15" cy="62" r="4" fill="#3b82f6"/>
+      </g>
+      <g class="robot-arm-right">
+        <rect x="52" y="40" width="6" height="20" rx="3" fill="#475569" stroke="#1e293b" stroke-width="1"/>
+        <circle cx="55" cy="62" r="4" fill="#3b82f6"/>
+      </g>
+
+      <!-- Pieds -->
+      <rect x="22" y="68" width="10" height="8" rx="2" fill="#1e293b"/>
+      <rect x="38" y="68" width="10" height="8" rx="2" fill="#1e293b"/>
+    </svg>
+  </div>
+</div>
 
 <div class="footer">
   Données : github.com/emirsqalli23-cpu/trading-bot
@@ -479,6 +636,181 @@ document.querySelectorAll(".tab").forEach(t => {
 
 loadAll();
 setInterval(loadAll, 30000);
+
+// ═══════ ROBOT MASCOTTE — vie autonome ═══════
+const ROBOT_PHRASES = {
+  sleeping: [
+    "Hors killzone... 💤",
+    "Je dors un peu...",
+    "Pas de bonne heure pour trader",
+    "Réveille-moi à Londres ☕",
+  ],
+  working: [
+    "J'analyse les bougies... 🔍",
+    "Je cherche un MSS...",
+    "J'observe le DXY...",
+    "Calcul du R:R en cours",
+    "Vérification des news 📰",
+    "Je consulte les pros (COT)",
+    "Régime du marché ?",
+  ],
+  trading: [
+    "🚀 Position ouverte !",
+    "Je trade en ce moment !",
+    "On parie sur la hausse !",
+    "Allez le bot !",
+  ],
+  excited: [
+    "🎉 +50€ encaissés !",
+    "💰 TP touché !",
+    "Pari gagné !",
+    "Easy money 💵",
+    "C'est pour ça qu'on bosse !",
+  ],
+  sad: [
+    "❌ Trade perdu...",
+    "Pas grave, on continue",
+    "Le SL fait son job 🛡️",
+    "Prochain sera le bon",
+  ],
+  blocked: [
+    "🚫 Trade bloqué",
+    "Trop risqué cette fois",
+    "Les filtres disent non",
+    "Discipline avant tout",
+  ],
+  idle: [
+    "Tout est sous contrôle 👍",
+    "Je veille... 👀",
+    "RAS pour l'instant",
+    "Je surveille les 3 marchés",
+  ],
+};
+
+let lastRobotMood = null;
+let lastTradeCount = 0;
+let robotBubbleTimeout = null;
+
+function detectRobotMood() {
+  // Total positions ouvertes
+  let openPositions = 0;
+  let totalTrades = 0;
+  let lastTrade = null;
+  let inKillzone = false;
+  let isAnalyzing = false;
+  let isBlocked = false;
+
+  Object.values(states).forEach(s => {
+    if (!s) return;
+    openPositions += Object.keys(s.positions || {}).length;
+    totalTrades   += (s.trades || []).length;
+    const trades = s.trades || [];
+    if (trades.length > 0) {
+      const last = trades[trades.length - 1];
+      if (!lastTrade || last.time > lastTrade.time) lastTrade = last;
+    }
+    const lc = s.last_cycle;
+    if (lc) {
+      if (lc.checks?.killzone?.ok) inKillzone = true;
+      if (lc.status === "ANALYZED") isAnalyzing = true;
+      if ((lc.symbols || []).some(x => (x.decision || "").startsWith("BLOCKED"))) isBlocked = true;
+    }
+  });
+
+  // Trade fraîchement clos ?
+  if (lastTrade && totalTrades > lastTradeCount) {
+    lastTradeCount = totalTrades;
+    if (lastTrade.pnl > 0) return "excited";
+    if (lastTrade.pnl < 0) return "sad";
+  }
+  lastTradeCount = totalTrades;
+
+  if (openPositions > 0) return "trading";
+  if (!inKillzone)       return "sleeping";
+  if (isBlocked)         return "blocked";
+  if (isAnalyzing)       return "working";
+  return "idle";
+}
+
+function setRobotMood(mood, customMsg) {
+  const robot = document.getElementById("robotMascot");
+  const bubble = document.getElementById("robotBubble");
+  const zzz = document.getElementById("robotZzz");
+  if (!robot) return;
+
+  // Reset classes
+  robot.classList.remove("sleeping", "excited", "working");
+  zzz.style.display = "none";
+
+  // Apply mood
+  if (mood === "sleeping") {
+    robot.classList.add("sleeping");
+    zzz.style.display = "block";
+  } else if (mood === "excited") {
+    robot.classList.add("excited");
+    spawnStars();
+  } else if (mood === "working" || mood === "trading") {
+    robot.classList.add("working");
+  }
+
+  // Phrase aléatoire
+  const list = ROBOT_PHRASES[mood] || ROBOT_PHRASES.idle;
+  const phrase = customMsg || list[Math.floor(Math.random() * list.length)];
+  bubble.textContent = phrase;
+  bubble.style.display = "block";
+
+  clearTimeout(robotBubbleTimeout);
+  robotBubbleTimeout = setTimeout(() => {
+    bubble.style.opacity = "0";
+    setTimeout(() => { bubble.style.display = "none"; bubble.style.opacity = "1"; }, 300);
+  }, 6000);
+}
+
+function spawnStars() {
+  const robot = document.getElementById("robotMascot");
+  if (!robot) return;
+  const stars = ["⭐","✨","💫","🌟"];
+  for (let i = 0; i < 8; i++) {
+    setTimeout(() => {
+      const s = document.createElement("div");
+      s.className = "star-particle";
+      s.textContent = stars[Math.floor(Math.random() * stars.length)];
+      s.style.left = (20 + Math.random() * 30) + "px";
+      s.style.bottom = (30 + Math.random() * 20) + "px";
+      s.style.setProperty("--tx", (Math.random() * 80 - 40) + "px");
+      s.style.setProperty("--ty", (-30 - Math.random() * 60) + "px");
+      robot.appendChild(s);
+      setTimeout(() => s.remove(), 1600);
+    }, i * 80);
+  }
+}
+
+function robotClick() {
+  const moods = ["working", "excited", "blocked", "idle", "trading"];
+  const mood = moods[Math.floor(Math.random() * moods.length)];
+  setRobotMood(mood);
+  // Easter egg : 1/5 chance de phrase spéciale
+  if (Math.random() < 0.2) {
+    setTimeout(() => setRobotMood("idle", "Arrête de me cliquer ! 😅"), 2000);
+  }
+}
+
+function refreshRobot() {
+  const mood = detectRobotMood();
+  if (mood !== lastRobotMood) {
+    setRobotMood(mood);
+    lastRobotMood = mood;
+  }
+}
+
+// Première humeur après chargement initial
+setTimeout(refreshRobot, 1500);
+// Re-check toutes les 30s (en sync avec loadAll)
+setInterval(refreshRobot, 30000);
+// Phrase aléatoire toutes les 60s même si l'humeur ne change pas
+setInterval(() => {
+  if (lastRobotMood) setRobotMood(lastRobotMood);
+}, 60000);
 </script>
 </body>
 </html>
