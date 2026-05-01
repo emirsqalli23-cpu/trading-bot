@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'dashboard.html'
+      - '*.html'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -31,6 +31,12 @@ jobs:
         run: |
           mkdir -p _site
           cp dashboard.html _site/index.html
+          cp comment_ca_marche.html _site/comment_ca_marche.html 2>/dev/null || true
+          # Copie aussi tout autre HTML a la racine
+          for f in *.html; do
+            [ "$f" = "dashboard.html" ] && continue
+            cp "$f" "_site/$f" 2>/dev/null || true
+          done
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
