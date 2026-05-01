@@ -1,19 +1,22 @@
 {
-  "capital": 1170.7499999999998,
+  "capital": 1207.0099999999998,
   "positions": {
     "EURUSD=X": {
       "direction": "LONG",
       "entry": 1.1663167476654053,
-      "sl": 1.1663167476654053,
-      "tp1": 1.1757789850234985,
+      "sl": 1.1710583738327025,
+      "tp1": 1.1805101037025452,
       "rr1": 2.7,
-      "risk_amount": 19.6,
-      "be_set": true
+      "risk_amount": 9.8,
+      "be_set": true,
+      "tp1_taken": true,
+      "trail_active": true,
+      "trail_high": 1.1758
     },
     "GBPUSD=X": {
       "direction": "LONG",
       "entry": 1.3482722043991089,
-      "sl": 1.3549361021995545,
+      "sl": 1.3550361021995543,
       "tp1": 1.367596983909607,
       "rr1": 3.19,
       "risk_amount": 11.46,
@@ -47,8 +50,14 @@
       "type": "TP_PARTIAL",
       "pnl": 36.54,
       "time": "2026-05-01T06:49:24.182341+00:00"
+    },
+    {
+      "symbol": "EUR/USD",
+      "type": "TP_PARTIAL",
+      "pnl": 26.46,
+      "time": "2026-05-01T11:20:11.964506+00:00"
     }
   ],
-  "timestamp": "2026-05-01T11:15:10.494095+00:00",
+  "timestamp": "2026-05-01T11:20:12.353184+00:00",
   "market": "forex"
 }
