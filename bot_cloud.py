@@ -208,15 +208,29 @@ def check_mss(candles_m5):
     if last < sl: return "BEARISH_MSS"
     return None
 
-def build_plan(direction, struct_h4, ob_bull, ob_bear):
+def build_plan(direction, struct_h4, ob_bull, ob_bear, atr_h1=None):
+    """
+    Construit le plan de trade : entrée, SL, TP, R:R.
+
+    Or (gold) : SL basé sur l'ATR H1 (volatilité réelle) plutôt qu'un % fixe.
+    Pourquoi ? L'or bouge facilement 10-20$/oz en une heure. Un SL à 0.3% fixe
+    est trop serré → stoppé avant que le mouvement parte, R:R jamais atteint.
+    ATR × 1.8 = buffer suffisant pour rester dans le trade.
+    """
     if direction == "LONG":
         entry = ob_bull["low"] if ob_bull else struct_h4["ema21"]
-        sl    = min(entry * 0.997, struct_h4["swing_low"] * 1.001)
-        tp1   = struct_h4["swing_high"]
+        if MARKET == "gold" and atr_h1:
+            sl = entry - 1.8 * atr_h1          # SL adapté à la vraie volatilité Or
+        else:
+            sl = min(entry * 0.997, struct_h4["swing_low"] * 1.001)
+        tp1 = struct_h4["swing_high"]
     else:
         entry = ob_bear["high"] if ob_bear else struct_h4["ema21"]
-        sl    = max(entry * 1.003, struct_h4["swing_high"] * 0.999)
-        tp1   = struct_h4["swing_low"]
+        if MARKET == "gold" and atr_h1:
+            sl = entry + 1.8 * atr_h1
+        else:
+            sl = max(entry * 1.003, struct_h4["swing_high"] * 0.999)
+        tp1 = struct_h4["swing_low"]
     risk = abs(entry - sl)
     rr1  = round(abs(tp1 - entry) / risk, 2) if risk > 0 else 0
     return {"direction": direction, "entry": entry, "sl": sl,
@@ -463,6 +477,23 @@ def run():
                 bias = "LONG"
             elif s_h4["trend"] == "BEARISH" and s_h1["trend"] == "BEARISH":
                 bias = "SHORT"
+            elif MARKET == "gold" and d1_trend != "NEUTRAL":
+                # Or : assouplissement — D1 fort + au moins 1 TF aligné suffit.
+                # Pourquoi ? L'or a une volatilité élevée → H4 et H1 rarement
+                # parfaitement alignés simultanément. Mais si la tendance Daily
+                # est forte, un seul TF intermédiaire suffit comme confirmation.
+                if d1_trend == "BULLISH" and (s_h4["trend"] == "BULLISH" or s_h1["trend"] == "BULLISH"):
+                    bias = "LONG"
+                    print(f"  💛 Or assoupli : D1={d1_trend} + (H4={s_h4['trend']} | H1={s_h1['trend']}) → LONG")
+                elif d1_trend == "BEARISH" and (s_h4["trend"] == "BEARISH" or s_h1["trend"] == "BEARISH"):
+                    bias = "SHORT"
+                    print(f"  💛 Or assoupli : D1={d1_trend} + (H4={s_h4['trend']} | H1={s_h1['trend']}) → SHORT")
+                else:
+                    print(f"⏸ {nice} | H4:{s_h4['trend']} H1:{s_h1['trend']} D1:{d1_trend} → WAIT")
+                    sym_log["decision"] = "TREND_NOT_ALIGNED"
+                    sym_log["details"].append(f"H4={s_h4['trend']} H1={s_h1['trend']} D1={d1_trend}")
+                    cycle_log["symbols"].append(sym_log)
+                    continue
             else:
                 print(f"⏸ {nice} | H4:{s_h4['trend']} H1:{s_h1['trend']} → WAIT")
                 sym_log["decision"] = "TREND_NOT_ALIGNED"
@@ -500,8 +531,15 @@ def run():
                     cycle_log["symbols"].append(sym_log)
                     continue
 
-            plan = build_plan(bias, s_h4, ob_bull, ob_bear)
-            print(f"📋 {nice} | {bias} | Entrée:{plan['entry']:.4f} | R:R:{plan['rr1']}")
+            # ATR calculé ICI — utilisé pour le SL de l'or + l'ajustement risque
+            atr_now = None
+            avg_atr = None
+            if TM_OK:
+                atr_now = compute_atr(c_h1, period=14)
+                avg_atr = compute_atr(c_h4, period=14) if len(c_h4) > 14 else atr_now
+
+            plan = build_plan(bias, s_h4, ob_bull, ob_bear, atr_h1=atr_now)
+            print(f"📋 {nice} | {bias} | Entrée:{plan['entry']:.4f} | SL:{plan['sl']:.4f} | R:R:{plan['rr1']}")
             sym_log["rr"] = plan["rr1"]
             if not plan["valid"]:
                 print(f"❌ {nice} R:R {plan['rr1']} < {MIN_RR}")
@@ -513,9 +551,7 @@ def run():
             # Risque ajusté par ATR (volatilité)
             base_risk = round(capital * RISK_PCT, 2)
             risk_amount = base_risk
-            if TM_OK:
-                atr_now = compute_atr(c_h1, period=14)
-                avg_atr = compute_atr(c_h4, period=14) if len(c_h4) > 14 else atr_now
+            if TM_OK and atr_now:
                 risk_amount = adjust_risk_by_atr(base_risk, atr_now, avg_atr)
                 if risk_amount != base_risk:
                     print(f"📏 ATR ajustement : risque {base_risk}$ → {risk_amount}$")

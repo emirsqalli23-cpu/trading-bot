@@ -129,8 +129,9 @@ def adjust_risk_by_atr(base_risk, atr_value, avg_atr):
 def in_active_session(market="forex"):
     """
     Trade que pendant les heures où la liquidité est bonne.
-    - forex/gold : Londres (7-17h UTC) + NY (12-21h UTC) = 7h à 21h UTC
-    - crypto     : 24/7 (mais évite 0-6h UTC weekend, faible liquidité)
+    - gold   : 2h-21h UTC (inclut session Asie : Shanghai Gold Exchange très actif)
+    - forex  : 7h-21h UTC (Londres + NY uniquement)
+    - crypto : 24/7 (mais évite 0-6h UTC weekend, faible liquidité)
     """
     now = datetime.now(timezone.utc)
     h, wd = now.hour, now.weekday()  # weekday: 0=lundi, 6=dimanche
@@ -144,6 +145,14 @@ def in_active_session(market="forex"):
     # forex / gold : marché fermé weekend
     if wd >= 5:  # samedi ou dimanche
         return False, "Weekend (Forex/Or fermé)"
+
+    # Or : session élargie (Asie/Shanghai actif dès 2h UTC)
+    if market == "gold":
+        if h < 2 or h >= 21:
+            return False, f"Hors session Or ({h}h UTC, attendre 2h-21h UTC)"
+        return True, None
+
+    # Forex : sessions classiques London + NY
     if h < 7 or h >= 21:
         return False, f"Hors session active ({h}h UTC, attendre 7h-21h UTC)"
     return True, None
@@ -193,13 +202,20 @@ def in_killzone(market="forex"):
     Killzones ICT = heures où 80% des mouvements rentables se produisent :
     - Londres Open : 7h-10h UTC
     - NY Open      : 12h-15h UTC
-    - NY PM        : 18h-20h UTC (parfois)
+    - NY PM        : 18h-20h UTC
 
-    Crypto trade 24/7 mais accepte aussi ces fenêtres + les pics asiatiques.
+    Or (gold) : killzone Asie en plus (Shanghai Gold Exchange + BIS flows)
+    - Asie Or    : 2h-6h UTC (peak liquidité Chine/Japon sur l'or)
+
+    Crypto : killzone Asia aussi mais plus tôt
     Renvoie (True/False, nom_de_killzone).
     """
     now = datetime.now(timezone.utc)
     h = now.hour
+
+    # Or : killzone Asie (Shanghai Gold Exchange — très actif sur l'or physique)
+    if market == "gold" and 2 <= h < 6:
+        return True, "Killzone Asie Or (Shanghai)"
 
     if 7 <= h < 10:    return True, "Killzone Londres Open"
     if 12 <= h < 15:   return True, "Killzone NY Open"
