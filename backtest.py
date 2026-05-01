@@ -51,9 +51,9 @@ MARKETS = {
 }
 
 # ── DATA ──────────────────────────────────────────────────────────────────
-def fetch_history(td_symbol, interval="1h", days=365):
-    """Récupère <days> jours de bougies via TwelveData."""
-    end = datetime.now(timezone.utc)
+def fetch_history(td_symbol, interval="1h", days=365, end_date=None):
+    """Récupère <days> jours de bougies via TwelveData. end_date = datetime UTC."""
+    end = end_date if end_date else datetime.now(timezone.utc)
     start = end - timedelta(days=days)
     sym = urllib.parse.quote(td_symbol, safe="")
     # TwelveData limite à ~5000 bougies par requête. 365j × 24h = 8760 → on découpe.
@@ -191,15 +191,16 @@ def build_plan(direction, struct_h4, ob_bull, ob_bear, atr_h1=None, market="cryp
     return {"direction": direction, "entry": entry, "sl": sl, "tp1": tp1, "rr1": rr, "valid": rr >= min_rr}
 
 # ── BACKTEST ENGINE ───────────────────────────────────────────────────────
-def run_backtest(market):
+def run_backtest(market, days=365, end_date=None, label=""):
     cfg = MARKETS[market]
-    print(f"\n{'='*60}\nBACKTEST {market.upper()} — 1 an de données\n{'='*60}\n")
+    period_label = label if label else f"{days} jours"
+    print(f"\n{'='*60}\nBACKTEST {market.upper()} — {period_label}\n{'='*60}\n")
 
     # 1. Charger l'historique pour chaque symbole
     histories = {}
     for sym, td_sym in cfg["td_map"].items():
         print(f"📥 Téléchargement {sym} ({td_sym})...")
-        candles = fetch_history(td_sym, "1h", 365)
+        candles = fetch_history(td_sym, "1h", days, end_date=end_date)
         if len(candles) < 200:
             print(f"  ⚠️ Pas assez de données ({len(candles)} bougies), skip")
             continue
