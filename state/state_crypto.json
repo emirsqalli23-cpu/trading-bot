@@ -21,6 +21,63 @@
       "time": "2026-04-29T18:12:01.339850+00:00"
     }
   ],
-  "timestamp": "2026-05-01T11:45:34.711522+00:00",
-  "market": "crypto"
+  "timestamp": "2026-05-01T12:15:36.522074+00:00",
+  "market": "crypto",
+  "last_cycle": {
+    "time": "2026-05-01T12:15:33.627928+00:00",
+    "checks": {
+      "session": {
+        "ok": true,
+        "reason": "Sessions actives"
+      },
+      "daily_loss": {
+        "ok": true,
+        "pct": 0.0
+      },
+      "killzone": {
+        "ok": true,
+        "name": "Killzone NY Open"
+      }
+    },
+    "symbols": [
+      {
+        "symbol": "BTC/USD",
+        "decision": "WAIT_MSS",
+        "details": [
+          "Attendu BULLISH_MSS, actuel None"
+        ],
+        "d1": "BULLISH",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": null,
+        "bias": "LONG"
+      },
+      {
+        "symbol": "ETH/USD",
+        "decision": "WAIT_MSS",
+        "details": [
+          "Attendu BULLISH_MSS, actuel None"
+        ],
+        "d1": "BULLISH",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": null,
+        "bias": "LONG"
+      },
+      {
+        "symbol": "SOL/USD",
+        "decision": "AGAINST_D1",
+        "details": [
+          "LONG contre D1=BEARISH"
+        ],
+        "d1": "BEARISH",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": null,
+        "bias": "LONG"
+      }
+    ],
+    "actions": [],
+    "status": "ANALYZED"
+  }
 }
