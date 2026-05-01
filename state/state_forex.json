@@ -1,18 +1,6 @@
 {
-  "capital": 1207.0099999999998,
+  "capital": 1226.6099999999997,
   "positions": {
-    "EURUSD=X": {
-      "direction": "LONG",
-      "entry": 1.1663167476654053,
-      "sl": 1.1725083738327027,
-      "tp1": 1.1805101037025452,
-      "rr1": 2.7,
-      "risk_amount": 9.8,
-      "be_set": true,
-      "tp1_taken": true,
-      "trail_active": true,
-      "trail_high": 1.1758
-    },
     "GBPUSD=X": {
       "direction": "LONG",
       "entry": 1.3482722043991089,
@@ -56,12 +44,18 @@
       "type": "TP_PARTIAL",
       "pnl": 26.46,
       "time": "2026-05-01T11:20:11.964506+00:00"
+    },
+    {
+      "symbol": "EUR/USD",
+      "type": "TRAIL_EXIT",
+      "pnl": 9.8,
+      "time": "2026-05-01T18:33:50.306856+00:00"
     }
   ],
-  "timestamp": "2026-05-01T18:13:47.760316+00:00",
+  "timestamp": "2026-05-01T18:33:51.203889+00:00",
   "market": "forex",
   "last_cycle": {
-    "time": "2026-05-01T18:13:46.704121+00:00",
+    "time": "2026-05-01T18:33:49.149005+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -69,7 +63,7 @@
       },
       "daily_loss": {
         "ok": true,
-        "pct": 6.3
+        "pct": 7.28
       },
       "killzone": {
         "ok": true,
@@ -79,10 +73,14 @@
     "symbols": [
       {
         "symbol": "EUR/USD",
-        "decision": "POSITION_OPEN",
+        "decision": "TREND_NOT_ALIGNED",
         "details": [
-          "Position LONG en cours"
-        ]
+          "H4=BULLISH H1=BEARISH"
+        ],
+        "d1": "NEUTRAL",
+        "h4": "BULLISH",
+        "h1": "BEARISH",
+        "mss": "BEARISH_MSS"
       },
       {
         "symbol": "GBP/USD",
