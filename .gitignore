@@ -3,3 +3,4 @@ __pycache__/
 .env
 session.json
 logs/
+backtest_results/
