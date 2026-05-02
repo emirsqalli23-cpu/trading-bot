@@ -843,10 +843,17 @@ function renderMarket(market) {
       const progressed = direction === "LONG" ? (lastClose - p.entry) : (p.entry - lastClose);
       const progressPct = totalRange > 0 ? Math.max(0, Math.min(100, (progressed / totalRange) * 100)) : 0;
 
-      // Heure ouverture
-      const openTimeFr = p.open_time
-        ? `Ouvert à ${fmtTimeUTC(p.open_time)} (${fmtAge(p.open_time)})`
-        : `Ouvert il y a quelques heures`;
+      // Heure ouverture (avec marquage si estimée)
+      let openTimeFr;
+      if (p.open_time) {
+        const dateStr = new Date(p.open_time).toLocaleDateString("fr-FR",
+          { day: "2-digit", month: "short", timeZone: "UTC" });
+        const timeStr = fmtTimeUTC(p.open_time);
+        const estimated = p.open_time_estimated ? " ⚠️ estimé" : "";
+        openTimeFr = `🕐 Ouvert le ${dateStr} à ${timeStr} (${fmtAge(p.open_time)}${estimated})`;
+      } else {
+        openTimeFr = `🕐 Heure d'ouverture inconnue`;
+      }
 
       // Graphique SVG
       let chartHtml = "";

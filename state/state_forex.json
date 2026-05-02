@@ -270,7 +270,9 @@
           "ok": true,
           "detail": "Heure o\u00f9 les grosses banques tradent"
         }
-      ]
+      ],
+      "open_time": "2026-04-30T10:00:00+00:00",
+      "open_time_estimated": true
     }
   },
   "trades": [
