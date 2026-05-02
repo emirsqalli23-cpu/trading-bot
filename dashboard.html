@@ -105,22 +105,57 @@
 
   /* Mini-graphique du trade */
   .trade-chart {
-    background: #0f1419; border-radius: 8px; padding: 8px; margin: 10px 0;
-    border: 1px solid #252d36;
+    background: #0b1117; border-radius: 10px; padding: 10px; margin: 12px 0;
+    border: 1px solid #1e293b;
   }
-  .trade-chart svg { display: block; width: 100%; height: 140px; }
+  .trade-chart svg { display: block; width: 100%; height: 180px; }
   .chart-legend {
-    display: flex; gap: 12px; font-size: 0.7em; color: #94a3b8;
-    margin-top: 6px; flex-wrap: wrap;
+    display: flex; gap: 12px; font-size: 0.72em; color: #94a3b8;
+    margin-top: 8px; flex-wrap: wrap;
   }
   .chart-legend span { display: flex; align-items: center; gap: 4px; }
   .chart-legend .dot { width: 8px; height: 2px; border-radius: 1px; display: inline-block; }
 
-  .price-row {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
-    font-size: 0.85em; color: #cbd5e1; margin: 8px 0;
+  /* Position card redesign */
+  .pos-card {
+    background: #1a2027; border-radius: 14px; padding: 0; margin-bottom: 12px;
+    border: 1px solid #252d36; overflow: hidden;
   }
-  .price-row b { color: #e6e9ec; }
+  .pos-header {
+    padding: 12px 14px; display: flex; justify-content: space-between;
+    align-items: center; gap: 8px;
+  }
+  .pos-header.profit { background: linear-gradient(135deg, #064e3b, #022c22); }
+  .pos-header.loss   { background: linear-gradient(135deg, #7f1d1d, #450a0a); }
+  .pos-header.neutral { background: linear-gradient(135deg, #1e293b, #0f172a); }
+  .pos-sym { font-size: 1.05em; font-weight: 700; color: #e6e9ec; }
+  .pos-sym .dir { font-size: 0.85em; opacity: 0.9; margin-left: 4px; }
+  .pos-pnl-live { text-align: right; }
+  .pos-pnl-live .amount { font-size: 1.3em; font-weight: 800; }
+  .pos-pnl-live .pct    { font-size: 0.78em; opacity: 0.85; }
+  .pos-body { padding: 12px 14px; }
+
+  .pos-stats {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px;
+    font-size: 0.85em; margin-bottom: 8px;
+  }
+  .pos-stat-label { color: #6b7785; font-size: 0.75em; }
+  .pos-stat-val   { color: #e6e9ec; font-weight: 600; }
+  .pos-stat-val.pos { color: #22c55e; }
+  .pos-stat-val.neg { color: #ef4444; }
+
+  .progress-tp {
+    background: #0f1419; border-radius: 6px; height: 6px; overflow: hidden;
+    margin-top: 4px; position: relative;
+  }
+  .progress-tp > div {
+    height: 100%; background: linear-gradient(90deg, #ef4444, #fbbf24, #22c55e);
+    transition: width 0.6s ease;
+  }
+  .progress-marks {
+    display: flex; justify-content: space-between; font-size: 0.65em;
+    color: #6b7785; margin-top: 2px;
+  }
 
   .validations {
     background: #0f1419; border-radius: 8px; padding: 10px; margin-top: 8px;
@@ -478,102 +513,132 @@ function findOpenCandleIndex(candles, entry, openTime) {
   return bestIdx;
 }
 
-// Génère un mini-graphique candlestick SVG avec marqueurs Entry/SL/TP + bougie d'ouverture
+function fmtCandleTime(ts) {
+  if (!ts) return "?";
+  const d = typeof ts === "string" ? new Date(ts) : new Date(ts * 1000);
+  return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+}
+function fmtCandleDate(ts) {
+  if (!ts) return "?";
+  const d = typeof ts === "string" ? new Date(ts) : new Date(ts * 1000);
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", timeZone: "UTC" });
+}
+
+// Génère un mini-graphique candlestick SVG avec axe temporel et marqueurs
 function renderChart(candles, entry, sl, tp, direction, openTime) {
   if (!candles || candles.length === 0) return "";
-  const W = 320, H = 160, PAD = 8;
-  const innerW = W - PAD * 2, innerH = H - PAD * 2;
+  const W = 340, H = 180, PADX = 10, PADT = 14, PADB = 26;
+  const innerW = W - PADX * 2, innerH = H - PADT - PADB;
 
-  // Plage de prix incluant SL et TP
-  let lows = candles.map(c => c.l);
-  let highs = candles.map(c => c.h);
-  let minP = Math.min(...lows, sl, tp, entry);
-  let maxP = Math.max(...highs, sl, tp, entry);
+  let minP = Math.min(...candles.map(c => c.l), sl, tp, entry);
+  let maxP = Math.max(...candles.map(c => c.h), sl, tp, entry);
   const range = maxP - minP || 1;
-  minP -= range * 0.05;
-  maxP += range * 0.05;
+  minP -= range * 0.06;
+  maxP += range * 0.06;
   const totalRange = maxP - minP;
 
   const xStep = innerW / candles.length;
   const cw = Math.max(2, xStep * 0.7);
-  const yPos = (price) => PAD + innerH * (1 - (price - minP) / totalRange);
+  const yPos = (price) => PADT + innerH * (1 - (price - minP) / totalRange);
+  const xOf  = (i) => PADX + i * xStep + xStep/2;
 
-  // Trouve la bougie d'ouverture
   const openIdx = findOpenCandleIndex(candles, entry, openTime);
+  const dirCol  = direction === "LONG" ? "#22c55e" : "#ef4444";
 
   let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-  // Grille
-  for (let i = 1; i < 4; i++) {
-    const y = PAD + (innerH * i) / 4;
-    svg += `<line x1="${PAD}" y1="${y}" x2="${W-PAD}" y2="${y}" stroke="#252d36" stroke-width="0.5"/>`;
+
+  // Grille horizontale
+  for (let i = 0; i <= 4; i++) {
+    const y = PADT + (innerH * i) / 4;
+    svg += `<line x1="${PADX}" y1="${y}" x2="${W-PADX}" y2="${y}" stroke="#1e293b" stroke-width="0.5"/>`;
   }
 
-  // Zone "avant l'ouverture" (grisée légèrement) — montre clairement où est la rupture
+  // Zone avant ouverture
   if (openIdx >= 0) {
-    const xOpen = PAD + openIdx * xStep;
-    svg += `<rect x="${PAD}" y="${PAD}" width="${xOpen - PAD}" height="${innerH}" fill="#252d36" opacity="0.3"/>`;
+    const xOpen = PADX + openIdx * xStep;
+    svg += `<rect x="${PADX}" y="${PADT}" width="${xOpen - PADX}" height="${innerH}" fill="#0f172a" opacity="0.6"/>`;
   }
 
   // Bougies
   candles.forEach((c, i) => {
-    const x = PAD + i * xStep + xStep/2;
+    const x = xOf(i);
     const yH = yPos(c.h), yL = yPos(c.l), yO = yPos(c.o), yC = yPos(c.c);
     const up = c.c >= c.o;
     const color = up ? "#22c55e" : "#ef4444";
-    svg += `<line x1="${x}" y1="${yH}" x2="${x}" y2="${yL}" stroke="${color}" stroke-width="0.8"/>`;
+    svg += `<line x1="${x}" y1="${yH}" x2="${x}" y2="${yL}" stroke="${color}" stroke-width="0.9"/>`;
     svg += `<rect x="${x - cw/2}" y="${Math.min(yO, yC)}" width="${cw}" height="${Math.max(1, Math.abs(yC - yO))}" fill="${color}"/>`;
   });
 
-  // Lignes Entry / SL / TP
+  // Zones colorées TP/SL pour visualiser la "fourchette de gain/risque"
   const yE = yPos(entry), ySL = yPos(sl), yTP = yPos(tp);
-  svg += `<line x1="${PAD}" y1="${yE}" x2="${W-PAD}" y2="${yE}" stroke="#3b82f6" stroke-width="1" stroke-dasharray="3,3"/>`;
-  svg += `<line x1="${PAD}" y1="${ySL}" x2="${W-PAD}" y2="${ySL}" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,3"/>`;
-  svg += `<line x1="${PAD}" y1="${yTP}" x2="${W-PAD}" y2="${yTP}" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,3"/>`;
+  // Zone gain (entry → TP)
+  svg += `<rect x="${PADX}" y="${Math.min(yE, yTP)}" width="${innerW}" height="${Math.abs(yTP - yE)}" fill="#22c55e" opacity="0.05"/>`;
+  // Zone perte (entry → SL)
+  svg += `<rect x="${PADX}" y="${Math.min(yE, ySL)}" width="${innerW}" height="${Math.abs(ySL - yE)}" fill="#ef4444" opacity="0.05"/>`;
 
-  // Marqueur vertical de l'ouverture + flèche + label "OUVERT ICI"
+  // Lignes Entry / SL / TP
+  svg += `<line x1="${PADX}" y1="${yE}" x2="${W-PADX}" y2="${yE}" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="4,3"/>`;
+  svg += `<line x1="${PADX}" y1="${ySL}" x2="${W-PADX}" y2="${ySL}" stroke="#ef4444" stroke-width="1.2" stroke-dasharray="4,3"/>`;
+  svg += `<line x1="${PADX}" y1="${yTP}" x2="${W-PADX}" y2="${yTP}" stroke="#22c55e" stroke-width="1.2" stroke-dasharray="4,3"/>`;
+
+  // Marqueur ouverture + cercle pulsant
   if (openIdx >= 0) {
-    const xOpen = PAD + openIdx * xStep + xStep/2;
-    const dirCol = direction === "LONG" ? "#22c55e" : "#ef4444";
-    const arrow  = direction === "LONG" ? "▲" : "▼";
-    // Ligne verticale épaisse
-    svg += `<line x1="${xOpen}" y1="${PAD}" x2="${xOpen}" y2="${H-PAD}" stroke="${dirCol}" stroke-width="2" stroke-dasharray="2,2" opacity="0.9"/>`;
-    // Cercle pulsant à l'entrée
-    svg += `<circle cx="${xOpen}" cy="${yE}" r="5" fill="${dirCol}" stroke="white" stroke-width="1.5">
-      <animate attributeName="r" values="5;7;5" dur="1.5s" repeatCount="indefinite"/>
-      <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
+    const xOpen = xOf(openIdx);
+    svg += `<line x1="${xOpen}" y1="${PADT}" x2="${xOpen}" y2="${H-PADB}" stroke="${dirCol}" stroke-width="1.8" stroke-dasharray="3,3" opacity="0.85"/>`;
+    svg += `<circle cx="${xOpen}" cy="${yE}" r="6" fill="${dirCol}" stroke="white" stroke-width="2">
+      <animate attributeName="r" values="6;9;6" dur="1.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.4;1" dur="1.8s" repeatCount="indefinite"/>
     </circle>`;
-    // Flèche au-dessus
-    svg += `<text x="${xOpen}" y="${PAD+12}" text-anchor="middle" fill="${dirCol}" font-size="14" font-weight="900">${arrow}</text>`;
-    // Label "OUVERT" avec fond blanc
-    const labelX = openIdx < candles.length / 2 ? xOpen + 6 : xOpen - 6;
+    // Tag "OUVERT" avec heure
+    const tagX = openIdx < candles.length / 2 ? xOpen + 8 : xOpen - 8;
     const anchor = openIdx < candles.length / 2 ? "start" : "end";
-    svg += `<rect x="${anchor === 'start' ? labelX-2 : labelX-50}" y="${PAD+18}" width="52" height="13" rx="3" fill="${dirCol}"/>`;
-    svg += `<text x="${labelX + (anchor === 'start' ? 0 : -2)}" y="${PAD+27}" text-anchor="${anchor}" fill="white" font-size="9" font-weight="700">🚀 OUVERT</text>`;
+    const tagW = 78;
+    const rectX = anchor === "start" ? tagX - 2 : tagX - tagW + 2;
+    svg += `<rect x="${rectX}" y="${PADT+2}" width="${tagW}" height="14" rx="3" fill="${dirCol}"/>`;
+    svg += `<text x="${tagX + (anchor === 'start' ? 4 : -4)}" y="${PADT+12}" text-anchor="${anchor}" fill="white" font-size="9" font-weight="800">🚀 ${fmtCandleTime(candles[openIdx].ts)}</text>`;
   }
 
-  // Étiquettes Entry/SL/TP à droite
-  svg += `<text x="${W-PAD-2}" y="${yE-2}"  text-anchor="end" fill="#3b82f6" font-size="9" font-weight="700">Entrée ${entry.toFixed(4)}</text>`;
-  svg += `<text x="${W-PAD-2}" y="${ySL-2}" text-anchor="end" fill="#ef4444" font-size="9" font-weight="700">SL ${sl.toFixed(4)}</text>`;
-  svg += `<text x="${W-PAD-2}" y="${yTP-2}" text-anchor="end" fill="#22c55e" font-size="9" font-weight="700">TP ${tp.toFixed(4)}</text>`;
+  // Étiquettes prix à droite
+  svg += `<text x="${W-PADX-2}" y="${yE-3}"  text-anchor="end" fill="#3b82f6" font-size="10" font-weight="800">Entrée ${entry.toFixed(4)}</text>`;
+  svg += `<text x="${W-PADX-2}" y="${ySL-3}" text-anchor="end" fill="#ef4444" font-size="10" font-weight="800">SL ${sl.toFixed(4)}</text>`;
+  svg += `<text x="${W-PADX-2}" y="${yTP-3}" text-anchor="end" fill="#22c55e" font-size="10" font-weight="800">TP ${tp.toFixed(4)}</text>`;
 
-  // Indicateur "Maintenant" sur la dernière bougie
-  const lastX = PAD + (candles.length - 0.5) * xStep;
-  const lastClose = candles[candles.length - 1].c;
+  // Indicateur "Maintenant" — point + ligne + label heure
+  const lastIdx = candles.length - 1;
+  const lastX = xOf(lastIdx);
+  const lastClose = candles[lastIdx].c;
   const yNow = yPos(lastClose);
-  svg += `<circle cx="${lastX}" cy="${yNow}" r="3" fill="white" stroke="#0f1419" stroke-width="1"/>`;
-  svg += `<text x="${lastX-4}" y="${yNow-6}" text-anchor="end" fill="white" font-size="9" font-weight="700">Maintenant</text>`;
+  // P&L approximatif (selon SL initial = stop original) — simplification
+  const r = Math.abs(entry - sl);
+  const distToCurrent = direction === "LONG" ? (lastClose - entry) : (entry - lastClose);
+  const pnlR = r > 0 ? (distToCurrent / r) : 0;
+  const nowCol = pnlR >= 0 ? "#22c55e" : "#ef4444";
+  svg += `<circle cx="${lastX}" cy="${yNow}" r="4" fill="${nowCol}" stroke="white" stroke-width="1.5"/>`;
+  svg += `<text x="${lastX-6}" y="${yNow-7}" text-anchor="end" fill="white" font-size="9" font-weight="800">Prix actuel ${lastClose.toFixed(4)}</text>`;
+
+  // ═══ Axe temporel en bas (3 timestamps : début, ouverture, fin) ═══
+  const yAxis = H - PADB + 10;
+  // Ligne axe
+  svg += `<line x1="${PADX}" y1="${H-PADB+2}" x2="${W-PADX}" y2="${H-PADB+2}" stroke="#1e293b" stroke-width="0.5"/>`;
+  // Timestamp début
+  svg += `<text x="${PADX}" y="${yAxis}" text-anchor="start" fill="#6b7785" font-size="9">${fmtCandleDate(candles[0].ts)} ${fmtCandleTime(candles[0].ts)}</text>`;
+  // Timestamp fin
+  svg += `<text x="${W-PADX}" y="${yAxis}" text-anchor="end" fill="#6b7785" font-size="9">${fmtCandleTime(candles[lastIdx].ts)} maintenant</text>`;
+  // Tick markers (3 marques verticales)
+  for (let i = 0; i <= 3; i++) {
+    const x = PADX + (innerW * i) / 3;
+    svg += `<line x1="${x}" y1="${H-PADB+2}" x2="${x}" y2="${H-PADB+5}" stroke="#475569" stroke-width="0.5"/>`;
+  }
 
   svg += `</svg>`;
 
   return `<div class="trade-chart">${svg}
     <div class="chart-legend">
-      <span><span class="dot" style="background:${direction === 'LONG' ? '#22c55e' : '#ef4444'}"></span>🚀 Bougie d'ouverture</span>
+      <span><span class="dot" style="background:${dirCol}"></span>Ouverture</span>
       <span><span class="dot" style="background:#3b82f6"></span>Entrée</span>
       <span><span class="dot" style="background:#22c55e"></span>TP</span>
       <span><span class="dot" style="background:#ef4444"></span>SL</span>
-    </div>
-    <div style="font-size:0.7em;color:#6b7785;margin-top:4px;text-align:center">
-      Zone grisée = avant l'ouverture · 30 dernières heures
+      <span style="margin-left:auto;color:#475569">UTC</span>
     </div>
   </div>`;
 }
@@ -599,24 +664,58 @@ function renderMarket(market) {
   // Pipeline live
   html += renderPipeline(state);
 
-  // Positions ouvertes (avec graphique + explications)
+  // Positions ouvertes — design redesigné avec PnL temps réel
   if (Object.keys(pos).length > 0) {
     html += `<div class="card"><h3>📂 Positions en cours</h3>`;
     for (const [sym, p] of Object.entries(pos)) {
+      const dirIco = p.direction === "LONG" ? "📈" : "📉";
       const flags = [];
       if (p.be_set)        flags.push("🛡️ Breakeven");
       if (p.tp1_taken)     flags.push("💰 50% pris");
       if (p.trail_active)  flags.push("🎯 Trailing");
-      const dirIco = p.direction === "LONG" ? "📈" : "📉";
-      const dirCol = p.direction === "LONG" ? "#22c55e" : "#ef4444";
 
-      // Graphique SVG mini-candlestick
+      // Prix actuel = dernière bougie du chart
+      const candles = p.chart_candles || [];
+      const lastClose = candles.length ? candles[candles.length - 1].c : p.entry;
+
+      // PnL latent : (prix actuel - entrée) ramené à la mise initiale
+      const initSL = p.initial_sl || p.sl;
+      const initR  = Math.abs(p.entry - initSL);
+      const direction = p.direction;
+      const distMove = direction === "LONG" ? (lastClose - p.entry) : (p.entry - lastClose);
+      const pnlR     = initR > 0 ? distMove / initR : 0;       // en multiples de R
+      const initRisk = p.initial_risk_amount || p.risk_amount;
+      const pnlEur   = pnlR * initRisk;
+      const pnlPct   = (pnlEur / initRisk) * 100;
+
+      // Statut visuel
+      const isProfit = pnlEur > 0.5;
+      const isLoss   = pnlEur < -0.5;
+      const headerCls = isProfit ? "profit" : (isLoss ? "loss" : "neutral");
+      const pnlIco = isProfit ? "📈" : (isLoss ? "📉" : "➖");
+      const pnlSign = pnlEur >= 0 ? "+" : "";
+      const pnlColor = isProfit ? "#86efac" : (isLoss ? "#fca5a5" : "#cbd5e1");
+
+      // Distances en %
+      const distToTP   = Math.abs(p.tp1 - lastClose) / lastClose * 100;
+      const distToSL   = Math.abs(lastClose - p.sl) / lastClose * 100;
+      // Progression vers TP (0% = à l'entrée, 100% = au TP)
+      const totalRange = Math.abs(p.tp1 - p.entry);
+      const progressed = direction === "LONG" ? (lastClose - p.entry) : (p.entry - lastClose);
+      const progressPct = totalRange > 0 ? Math.max(0, Math.min(100, (progressed / totalRange) * 100)) : 0;
+
+      // Heure ouverture
+      const openTimeFr = p.open_time
+        ? `Ouvert à ${fmtTimeUTC(p.open_time)} (${fmtAge(p.open_time)})`
+        : `Ouvert il y a quelques heures`;
+
+      // Graphique SVG
       let chartHtml = "";
-      if (p.chart_candles && p.chart_candles.length > 0) {
-        chartHtml = renderChart(p.chart_candles, p.entry, p.sl, p.tp1, p.direction, p.open_time);
+      if (candles.length > 0) {
+        chartHtml = renderChart(candles, p.entry, p.sl, p.tp1, p.direction, p.open_time);
       }
 
-      // Checklist des validations
+      // Validations checklist
       let validHtml = "";
       if (p.validations && p.validations.length > 0) {
         validHtml = `<div class="validations"><div class="vtitle">✨ Pourquoi le bot a pris ce trade :</div>`;
@@ -627,16 +726,57 @@ function renderMarket(market) {
       }
 
       html += `<div class="pos-card">
-        <div class="head"><b>${sym}</b><span style="color:${dirCol}">${dirIco} ${p.direction}</span></div>
-        ${chartHtml}
-        <div class="price-row">
-          <div>Entrée : <b>${p.entry.toFixed(4)}</b></div>
-          <div>SL : <span style="color:#ef4444">${p.sl.toFixed(4)}</span></div>
-          <div>TP : <span style="color:#22c55e">${p.tp1.toFixed(4)}</span></div>
-          <div>R:R : <b>${p.rr1}</b></div>
+        <div class="pos-header ${headerCls}">
+          <div>
+            <div class="pos-sym">${sym} <span class="dir">${dirIco} ${p.direction}</span></div>
+            <div style="font-size:0.72em;color:rgba(255,255,255,0.7);margin-top:2px">${openTimeFr}</div>
+          </div>
+          <div class="pos-pnl-live">
+            <div class="amount" style="color:${pnlColor}">${pnlIco} ${pnlSign}${pnlEur.toFixed(0)}€</div>
+            <div class="pct" style="color:${pnlColor}">${pnlSign}${pnlPct.toFixed(1)}% · ${pnlR >= 0 ? "+" : ""}${pnlR.toFixed(2)}R</div>
+          </div>
         </div>
-        ${flags.length ? `<div class="flags">${flags.map(f => `<span class="flag">${f}</span>`).join('')}</div>` : ''}
-        ${validHtml}
+        <div class="pos-body">
+          ${flags.length ? `<div class="flags" style="margin-bottom:10px">${flags.map(f => `<span class="flag">${f}</span>`).join('')}</div>` : ''}
+
+          <div class="pos-stats">
+            <div>
+              <div class="pos-stat-label">Prix actuel</div>
+              <div class="pos-stat-val">${lastClose.toFixed(4)}</div>
+            </div>
+            <div>
+              <div class="pos-stat-label">Prix d'entrée</div>
+              <div class="pos-stat-val">${p.entry.toFixed(4)}</div>
+            </div>
+            <div>
+              <div class="pos-stat-label">Distance au TP 🎯</div>
+              <div class="pos-stat-val pos">${distToTP.toFixed(2)}%  →  ${p.tp1.toFixed(4)}</div>
+            </div>
+            <div>
+              <div class="pos-stat-label">Distance au SL 🛡️</div>
+              <div class="pos-stat-val neg">${distToSL.toFixed(2)}%  →  ${p.sl.toFixed(4)}</div>
+            </div>
+            <div>
+              <div class="pos-stat-label">Mise risquée</div>
+              <div class="pos-stat-val">${initRisk.toFixed(0)}€</div>
+            </div>
+            <div>
+              <div class="pos-stat-label">Gain potentiel max</div>
+              <div class="pos-stat-val pos">+${(initRisk * p.rr1).toFixed(0)}€ (R:R ${p.rr1})</div>
+            </div>
+          </div>
+
+          <div style="margin:10px 0 4px;font-size:0.72em;color:#94a3b8">Progression vers l'objectif</div>
+          <div class="progress-tp"><div style="width:${progressPct}%"></div></div>
+          <div class="progress-marks">
+            <span>SL ${p.sl.toFixed(4)}</span>
+            <span>Entrée</span>
+            <span>TP ${p.tp1.toFixed(4)}</span>
+          </div>
+
+          ${chartHtml}
+          ${validHtml}
+        </div>
       </div>`;
     }
     html += `</div>`;
