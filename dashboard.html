@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f1419">
 <title>📊 Bot Trading</title>
+<!-- TradingView Lightweight Charts (lib officielle, MIT, ~50KB) -->
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -109,6 +111,16 @@
     border: 1px solid #1e293b;
   }
   .trade-chart svg { display: block; width: 100%; height: 180px; }
+  .tv-chart-container { width: 100%; height: 280px; border-radius: 8px; overflow: hidden; }
+  .chart-toolbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 4px 8px; gap: 8px; flex-wrap: wrap;
+  }
+  .chart-tag {
+    color: white; font-weight: 700; font-size: 0.72em;
+    padding: 4px 10px; border-radius: 6px; letter-spacing: 0.4px;
+  }
+  .chart-hint { color: #6b7785; font-size: 0.7em; }
   .chart-legend {
     display: flex; gap: 12px; font-size: 0.72em; color: #94a3b8;
     margin-top: 8px; flex-wrap: wrap;
@@ -524,8 +536,130 @@ function fmtCandleDate(ts) {
   return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", timeZone: "UTC" });
 }
 
-// Génère un mini-graphique candlestick SVG avec axe temporel et marqueurs
+// File d'attente de graphiques à créer après insertion DOM
+let pendingCharts = [];
+let chartCounter = 0;
+
+// Génère un container pour TradingView Lightweight Charts (rempli après DOM)
 function renderChart(candles, entry, sl, tp, direction, openTime) {
+  if (!candles || candles.length === 0) return "";
+  const id = "tv-chart-" + (++chartCounter);
+  // On stocke les données pour les utiliser après insertion DOM
+  pendingCharts.push({ id, candles, entry, sl, tp, direction, openTime });
+  const dirLabel = direction === "LONG" ? "📈 ACHAT" : "📉 VENTE";
+  const dirCol = direction === "LONG" ? "#22c55e" : "#ef4444";
+  return `<div class="trade-chart">
+    <div class="chart-toolbar">
+      <span class="chart-tag" style="background:${dirCol}">${dirLabel}</span>
+      <span class="chart-hint">🖱️ Glissez pour déplacer · Molette pour zoomer</span>
+    </div>
+    <div id="${id}" class="tv-chart-container"></div>
+    <div class="chart-legend">
+      <span><span class="dot" style="background:${dirCol}"></span>Ouverture</span>
+      <span><span class="dot" style="background:#3b82f6"></span>Entrée</span>
+      <span><span class="dot" style="background:#22c55e"></span>TP</span>
+      <span><span class="dot" style="background:#ef4444"></span>SL</span>
+      <span style="margin-left:auto;color:#475569">Heures UTC</span>
+    </div>
+  </div>`;
+}
+
+// Convertit nos bougies en format Lightweight Charts
+function toLwcFormat(candles) {
+  return candles.map(c => {
+    const ts = typeof c.ts === "string" ? Math.floor(new Date(c.ts).getTime() / 1000) : c.ts;
+    return { time: ts, open: c.o, high: c.h, low: c.l, close: c.c };
+  }).sort((a, b) => a.time - b.time);
+}
+
+// Initialise tous les graphiques en attente après le rendu DOM
+function setupTradingViewCharts() {
+  if (typeof LightweightCharts === "undefined") {
+    console.warn("LightweightCharts non chargé");
+    return;
+  }
+  while (pendingCharts.length > 0) {
+    const job = pendingCharts.shift();
+    const container = document.getElementById(job.id);
+    if (!container) continue;
+
+    const chart = LightweightCharts.createChart(container, {
+      width: container.clientWidth,
+      height: 280,
+      layout: {
+        background: { color: "#0b1117" },
+        textColor:  "#94a3b8",
+        fontSize: 11,
+      },
+      grid: {
+        vertLines: { color: "#1e293b" },
+        horzLines: { color: "#1e293b" },
+      },
+      timeScale: {
+        timeVisible: true,
+        secondsVisible: false,
+        borderColor: "#252d36",
+      },
+      rightPriceScale: { borderColor: "#252d36" },
+      crosshair: {
+        mode: LightweightCharts.CrosshairMode.Normal,
+        vertLine: { color: "#3b82f6", width: 1, style: 2, labelBackgroundColor: "#3b82f6" },
+        horzLine: { color: "#3b82f6", width: 1, style: 2, labelBackgroundColor: "#3b82f6" },
+      },
+      handleScroll: true,
+      handleScale: true,
+    });
+
+    const series = chart.addCandlestickSeries({
+      upColor: "#22c55e", downColor: "#ef4444",
+      borderUpColor: "#22c55e", borderDownColor: "#ef4444",
+      wickUpColor: "#22c55e", wickDownColor: "#ef4444",
+    });
+    series.setData(toLwcFormat(job.candles));
+
+    // Lignes horizontales : Entrée, SL, TP
+    series.createPriceLine({
+      price: job.entry, color: "#3b82f6", lineWidth: 2, lineStyle: 2,
+      axisLabelVisible: true, title: "Entrée",
+    });
+    series.createPriceLine({
+      price: job.tp, color: "#22c55e", lineWidth: 2, lineStyle: 2,
+      axisLabelVisible: true, title: "TP",
+    });
+    series.createPriceLine({
+      price: job.sl, color: "#ef4444", lineWidth: 2, lineStyle: 2,
+      axisLabelVisible: true, title: "SL",
+    });
+
+    // Marqueur sur la bougie d'ouverture
+    const openIdx = findOpenCandleIndex(job.candles, job.entry, job.openTime);
+    if (openIdx >= 0) {
+      const openCandle = job.candles[openIdx];
+      const ts = typeof openCandle.ts === "string"
+        ? Math.floor(new Date(openCandle.ts).getTime() / 1000)
+        : openCandle.ts;
+      series.setMarkers([{
+        time: ts,
+        position: job.direction === "LONG" ? "belowBar" : "aboveBar",
+        color: job.direction === "LONG" ? "#22c55e" : "#ef4444",
+        shape: job.direction === "LONG" ? "arrowUp" : "arrowDown",
+        text: `🚀 OUVERT ${fmtCandleTime(openCandle.ts)}`,
+        size: 2,
+      }]);
+    }
+
+    chart.timeScale().fitContent();
+
+    // Resize responsive
+    const resizeObs = new ResizeObserver(() => {
+      chart.applyOptions({ width: container.clientWidth });
+    });
+    resizeObs.observe(container);
+  }
+}
+
+// Génère un placeholder ancien (non utilisé directement mais conservé pour compat)
+function _legacyRenderChart(candles, entry, sl, tp, direction, openTime) {
   if (!candles || candles.length === 0) return "";
   const W = 340, H = 180, PADX = 10, PADT = 14, PADB = 26;
   const innerW = W - PADX * 2, innerH = H - PADT - PADB;
@@ -828,6 +962,8 @@ async function loadAll() {
   ents.forEach((k, i) => states[k] = arr[i]);
   renderTotal();
   document.getElementById("content").innerHTML = renderMarket(activeTab);
+  // Initialiser les graphiques TradingView après insertion DOM
+  requestAnimationFrame(() => setupTradingViewCharts());
   document.getElementById("lastUpdate").textContent = new Date().toLocaleTimeString("fr-FR");
 }
 
@@ -838,6 +974,7 @@ document.querySelectorAll(".tab").forEach(t => {
     t.classList.add("active");
     activeTab = t.dataset.tab;
     document.getElementById("content").innerHTML = renderMarket(activeTab);
+    requestAnimationFrame(() => setupTradingViewCharts());
     // Le robot se met à jour pour refléter le nouvel onglet
     refreshRobot();
   });
