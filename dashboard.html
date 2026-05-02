@@ -128,6 +128,46 @@
   .chart-legend span { display: flex; align-items: center; gap: 4px; }
   .chart-legend .dot { width: 8px; height: 2px; border-radius: 1px; display: inline-block; }
 
+  /* Mode débutant : aide flottante */
+  .help-icon {
+    display: inline-block; width: 16px; height: 16px; line-height: 16px;
+    background: #3b82f6; color: white; border-radius: 50%;
+    text-align: center; font-size: 0.7em; font-weight: 700;
+    cursor: help; margin-left: 4px; user-select: none;
+    transition: transform 0.15s;
+  }
+  .help-icon:hover { transform: scale(1.2); background: #2563eb; }
+
+  .help-popup {
+    position: fixed; z-index: 2000; max-width: 280px;
+    background: white; color: #0f1419; padding: 12px 14px;
+    border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    font-size: 0.85em; line-height: 1.4;
+    pointer-events: none; opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .help-popup.show { opacity: 1; pointer-events: auto; }
+  .help-popup strong { color: #1e40af; }
+
+  /* Carte "Comprendre le graphique" */
+  .chart-explainer {
+    background: linear-gradient(135deg, #1e3a8a, #1e293b);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+    font-size: 0.78em; line-height: 1.5; color: #cbd5e1;
+  }
+  .chart-explainer strong { color: white; }
+  .chart-explainer .legend-line {
+    display: flex; align-items: center; gap: 8px; margin: 4px 0;
+  }
+  .chart-explainer .lbox {
+    width: 14px; height: 4px; border-radius: 2px; flex-shrink: 0;
+  }
+  .chart-explainer .lbox.entry { background: #3b82f6; }
+  .chart-explainer .lbox.tp    { background: #22c55e; }
+  .chart-explainer .lbox.sl    { background: #ef4444; }
+  .chart-explainer .lbox.candle-up   { width: 8px; height: 12px; background: #22c55e; }
+  .chart-explainer .lbox.candle-down { width: 8px; height: 12px; background: #ef4444; }
+
   /* Position card redesign */
   .pos-card {
     background: #1a2027; border-radius: 14px; padding: 0; margin-bottom: 12px;
@@ -536,6 +576,54 @@ function fmtCandleDate(ts) {
   return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", timeZone: "UTC" });
 }
 
+// ═══════ AIDE PÉDAGOGIQUE — glossaire débutant ═══════
+const GLOSSARY = {
+  "LONG": "<strong>LONG</strong> = ACHAT 📈<br>Le bot parie que le prix va MONTER. Il achète maintenant et revendra plus haut.",
+  "SHORT": "<strong>SHORT</strong> = VENTE 📉<br>Le bot parie que le prix va BAISSER. Il vend maintenant et rachètera plus bas.",
+  "SL": "<strong>Stop Loss (SL)</strong> 🛡️<br>Ta sécurité automatique. Si le prix va dans le mauvais sens et touche cette ligne, le bot sort TOUT SEUL pour limiter la perte. C'est ton filet de sécurité.",
+  "TP": "<strong>Take Profit (TP)</strong> 🎯<br>Ton objectif de gain. Quand le prix touche cette ligne, le bot sort automatiquement avec un bénéfice.",
+  "entry": "<strong>Prix d'entrée</strong> 🔵<br>Le prix exact auquel le bot a ouvert le trade. À partir de ce point, on compte les gains ou les pertes.",
+  "be": "<strong>Breakeven</strong> ⚪<br>Quand le prix avance à mi-chemin du TP, le bot remonte le SL au prix d'entrée. Résultat : <strong>tu ne peux plus perdre, tu ne peux que gagner</strong>. C'est un 'pari gratuit'.",
+  "trailing": "<strong>Trailing stop</strong> 🎯<br>Ta sécurité qui SUIT le prix comme un aimant. Quand le prix monte, le trailing remonte aussi. Si le prix redescend, il déclenche la sortie. C'est le mécanisme qui fait COURIR les gains.",
+  "rr": "<strong>R:R (Risk:Reward)</strong> ⚖️<br>Combien on peut gagner pour chaque euro risqué. Un R:R de 2 = pour 1€ risqué, on peut gagner 2€. Plus c'est haut, mieux c'est.",
+  "mss": "<strong>MSS (Market Structure Shift)</strong> ⚡<br>Le marché vient de casser une structure (un sommet ou un creux). C'est LE signal d'entrée ICT. Ça veut dire : 'la direction vient de changer, on entre maintenant'.",
+  "ob": "<strong>Order Block</strong> 📦<br>Une zone de prix où les grosses banques ont placé leurs ordres. Le prix y revient souvent. C'est là que le bot place son point d'entrée.",
+  "ict": "<strong>ICT (Inner Circle Trader)</strong> 🏛️<br>Une méthode de trading qui consiste à <strong>suivre les grosses banques</strong> au lieu de se faire piéger par elles. Inventée par Michael Huddleston.",
+  "killzone": "<strong>Killzone</strong> ⏰<br>Les heures où les grosses banques (Londres, New York) sont actives et où le marché bouge vraiment. Le bot ne trade QUE dans ces fenêtres.",
+  "atr": "<strong>ATR</strong> 📏<br>'Average True Range' = mesure de l'agitation du marché. Plus l'ATR est élevé, plus le marché bouge. Le bot adapte la mise selon l'ATR.",
+  "dxy": "<strong>DXY (Dollar Index)</strong> 💵<br>Mesure la force du dollar US. Si le dollar monte, l'or et l'EUR/USD baissent (et inversement). Le bot vérifie cette logique avant chaque trade.",
+  "cot": "<strong>COT Report</strong> 🏛️<br>Rapport hebdomadaire publié par le gouvernement US qui montre les positions des hedge funds. Le bot vérifie qu'il ne va pas à contresens des pros.",
+  "candle": "<strong>Bougie japonaise</strong> 🕯️<br>Un rectangle qui résume comment le prix a bougé pendant 1 heure. <strong>Verte</strong> = le prix a monté. <strong>Rouge</strong> = le prix a baissé. Les mèches du haut/bas montrent les extrêmes atteints.",
+  "rmult": "<strong>Multiple de R</strong><br>Combien tu as gagné/perdu en multiples de ce que tu risquais. +2R = tu as gagné 2× ta mise initiale. -1R = tu as perdu ta mise.",
+};
+
+function helpIcon(key) {
+  return `<span class="help-icon" onclick="showHelp(event, '${key}')">?</span>`;
+}
+
+let _helpEl = null;
+function showHelp(evt, key) {
+  evt.stopPropagation();
+  if (!_helpEl) {
+    _helpEl = document.createElement("div");
+    _helpEl.className = "help-popup";
+    document.body.appendChild(_helpEl);
+    document.addEventListener("click", () => { _helpEl.classList.remove("show"); });
+  }
+  _helpEl.innerHTML = GLOSSARY[key] || "Pas d'aide";
+  _helpEl.classList.add("show");
+  // Position
+  const rect = evt.target.getBoundingClientRect();
+  const popupW = 280;
+  let x = rect.left - popupW/2 + 8;
+  if (x < 8) x = 8;
+  if (x + popupW > window.innerWidth - 8) x = window.innerWidth - popupW - 8;
+  let y = rect.bottom + 6;
+  if (y + 100 > window.innerHeight) y = rect.top - 110;
+  _helpEl.style.left = x + "px";
+  _helpEl.style.top  = y + "px";
+}
+
 // File d'attente de graphiques à créer après insertion DOM
 let pendingCharts = [];
 let chartCounter = 0;
@@ -549,18 +637,20 @@ function renderChart(candles, entry, sl, tp, direction, openTime) {
   const dirLabel = direction === "LONG" ? "📈 ACHAT" : "📉 VENTE";
   const dirCol = direction === "LONG" ? "#22c55e" : "#ef4444";
   return `<div class="trade-chart">
+    <div class="chart-explainer">
+      <div style="margin-bottom:6px"><strong>📖 Comment lire ce graphique</strong></div>
+      <div class="legend-line"><span class="lbox candle-up"></span><span><strong>Bougie verte</strong> = pendant cette heure, le prix a monté ${helpIcon('candle')}</span></div>
+      <div class="legend-line"><span class="lbox candle-down"></span><span><strong>Bougie rouge</strong> = pendant cette heure, le prix a baissé</span></div>
+      <div class="legend-line"><span class="lbox entry"></span><span><strong>Ligne bleue</strong> = ton prix d'achat ${helpIcon('entry')}</span></div>
+      <div class="legend-line"><span class="lbox tp"></span><span><strong>Ligne verte</strong> = objectif de gain ${helpIcon('TP')}</span></div>
+      <div class="legend-line"><span class="lbox sl"></span><span><strong>Ligne rouge</strong> = sécurité (sortie automatique) ${helpIcon('SL')}</span></div>
+      <div style="margin-top:6px;color:#94a3b8;font-style:italic">${dirLabel === "📈 ACHAT" ? "Le bot parie que le prix va MONTER vers la ligne verte" : "Le bot parie que le prix va BAISSER vers la ligne verte"}</div>
+    </div>
     <div class="chart-toolbar">
       <span class="chart-tag" style="background:${dirCol}">${dirLabel}</span>
-      <span class="chart-hint">🖱️ Glissez pour déplacer · Molette pour zoomer</span>
+      <span class="chart-hint">🖱️ Glissez · Molette pour zoomer</span>
     </div>
     <div id="${id}" class="tv-chart-container"></div>
-    <div class="chart-legend">
-      <span><span class="dot" style="background:${dirCol}"></span>Ouverture</span>
-      <span><span class="dot" style="background:#3b82f6"></span>Entrée</span>
-      <span><span class="dot" style="background:#22c55e"></span>TP</span>
-      <span><span class="dot" style="background:#ef4444"></span>SL</span>
-      <span style="margin-left:auto;color:#475569">Heures UTC</span>
-    </div>
   </div>`;
 }
 
@@ -617,18 +707,18 @@ function setupTradingViewCharts() {
     });
     series.setData(toLwcFormat(job.candles));
 
-    // Lignes horizontales : Entrée, SL, TP
+    // Lignes horizontales : Entrée, Objectif, Sécurité (en français débutant)
     series.createPriceLine({
       price: job.entry, color: "#3b82f6", lineWidth: 2, lineStyle: 2,
-      axisLabelVisible: true, title: "Entrée",
+      axisLabelVisible: true, title: "🔵 Achat",
     });
     series.createPriceLine({
       price: job.tp, color: "#22c55e", lineWidth: 2, lineStyle: 2,
-      axisLabelVisible: true, title: "TP",
+      axisLabelVisible: true, title: "🎯 Objectif",
     });
     series.createPriceLine({
       price: job.sl, color: "#ef4444", lineWidth: 2, lineStyle: 2,
-      axisLabelVisible: true, title: "SL",
+      axisLabelVisible: true, title: "🛡️ Sécurité",
     });
 
     // Marqueur sur la bougie d'ouverture
@@ -861,66 +951,104 @@ function renderMarket(market) {
         chartHtml = renderChart(candles, p.entry, p.sl, p.tp1, p.direction, p.open_time);
       }
 
-      // Validations checklist
+      // Validations checklist (avec aide contextuelle pour chaque terme)
       let validHtml = "";
       if (p.validations && p.validations.length > 0) {
-        validHtml = `<div class="validations"><div class="vtitle">✨ Pourquoi le bot a pris ce trade :</div>`;
+        validHtml = `<div class="validations">
+          <div class="vtitle">✨ Les 9 vérifications du bot avant d'ouvrir ce trade</div>
+          <div style="font-size:0.7em;color:#6b7785;margin-bottom:8px;font-style:italic">
+            💡 Le bot ne mise pas au hasard — il valide chaque critère AVANT d'investir.
+          </div>`;
         for (const v of p.validations) {
-          validHtml += `<div class="vrow"><span class="vico">✅</span><span class="vname">${v.name}</span><span class="vdetail">${v.detail || ''}</span></div>`;
+          // Détecter le terme technique pour ajouter l'aide
+          let helpKey = null;
+          const n = (v.name || "").toLowerCase();
+          if (n.includes("daily"))   helpKey = "ict";
+          else if (n.includes("mss") || n.includes("entrée")) helpKey = "mss";
+          else if (n.includes("order block")) helpKey = "ob";
+          else if (n.includes("r:r") || n.includes("risque/récompense")) helpKey = "rr";
+          else if (n.includes("dxy") || n.includes("dollar")) helpKey = "dxy";
+          else if (n.includes("yield") || n.includes("taux")) helpKey = "dxy";
+          else if (n.includes("cot") || n.includes("institut")) helpKey = "cot";
+          else if (n.includes("killzone")) helpKey = "killzone";
+          const help = helpKey ? helpIcon(helpKey) : "";
+          validHtml += `<div class="vrow"><span class="vico">✅</span><span class="vname">${v.name} ${help}</span><span class="vdetail">${v.detail || ''}</span></div>`;
         }
         validHtml += `</div>`;
       }
 
+      // Direction en français débutant
+      const dirFr = p.direction === "LONG"
+        ? `📈 <b>ACHAT</b> <span style="font-size:0.85em;opacity:0.8">(le bot parie que ça va MONTER)</span>`
+        : `📉 <b>VENTE</b> <span style="font-size:0.85em;opacity:0.8">(le bot parie que ça va BAISSER)</span>`;
+
+      // Statut texte simple
+      let statusText = "🚀 Trade en cours";
+      if (p.tp1_taken)   statusText = "🎯 50% encaissé · trailing actif";
+      else if (p.be_set) statusText = "🛡️ Sécurisé (ne peut plus perdre)";
+
       html += `<div class="pos-card">
         <div class="pos-header ${headerCls}">
           <div>
-            <div class="pos-sym">${sym} <span class="dir">${dirIco} ${p.direction}</span></div>
-            <div style="font-size:0.72em;color:rgba(255,255,255,0.7);margin-top:2px">${openTimeFr}</div>
+            <div class="pos-sym">${sym}</div>
+            <div style="font-size:0.78em;color:rgba(255,255,255,0.85);margin-top:3px">${dirFr} ${helpIcon(p.direction)}</div>
+            <div style="font-size:0.72em;color:rgba(255,255,255,0.65);margin-top:4px">${openTimeFr}</div>
           </div>
           <div class="pos-pnl-live">
+            <div style="font-size:0.7em;color:rgba(255,255,255,0.7);margin-bottom:2px">Gain/perte ACTUEL</div>
             <div class="amount" style="color:${pnlColor}">${pnlIco} ${pnlSign}${pnlEur.toFixed(0)}€</div>
-            <div class="pct" style="color:${pnlColor}">${pnlSign}${pnlPct.toFixed(1)}% · ${pnlR >= 0 ? "+" : ""}${pnlR.toFixed(2)}R</div>
+            <div class="pct" style="color:${pnlColor}">${pnlSign}${pnlPct.toFixed(1)}%</div>
           </div>
         </div>
+
         <div class="pos-body">
+          <div style="background:#0f1419;padding:8px 10px;border-radius:8px;margin-bottom:12px;font-size:0.85em;color:#cbd5e1;text-align:center;border:1px solid #1e293b">
+            <span style="color:${pnlColor};font-weight:700">${statusText}</span>
+          </div>
+
           ${flags.length ? `<div class="flags" style="margin-bottom:10px">${flags.map(f => `<span class="flag">${f}</span>`).join('')}</div>` : ''}
 
           <div class="pos-stats">
             <div>
-              <div class="pos-stat-label">Prix actuel</div>
+              <div class="pos-stat-label">📍 Prix maintenant</div>
               <div class="pos-stat-val">${lastClose.toFixed(4)}</div>
             </div>
             <div>
-              <div class="pos-stat-label">Prix d'entrée</div>
+              <div class="pos-stat-label">🔵 Prix d'achat ${helpIcon('entry')}</div>
               <div class="pos-stat-val">${p.entry.toFixed(4)}</div>
             </div>
             <div>
-              <div class="pos-stat-label">Distance au TP 🎯</div>
-              <div class="pos-stat-val pos">${distToTP.toFixed(2)}%  →  ${p.tp1.toFixed(4)}</div>
+              <div class="pos-stat-label">🎯 Objectif (TP) ${helpIcon('TP')}</div>
+              <div class="pos-stat-val pos">${distToTP.toFixed(2)}% · ${p.tp1.toFixed(4)}</div>
             </div>
             <div>
-              <div class="pos-stat-label">Distance au SL 🛡️</div>
-              <div class="pos-stat-val neg">${distToSL.toFixed(2)}%  →  ${p.sl.toFixed(4)}</div>
+              <div class="pos-stat-label">🛡️ Sécurité (SL) ${helpIcon('SL')}</div>
+              <div class="pos-stat-val neg">${distToSL.toFixed(2)}% · ${p.sl.toFixed(4)}</div>
             </div>
             <div>
-              <div class="pos-stat-label">Mise risquée</div>
+              <div class="pos-stat-label">💰 Mise (max perdable)</div>
               <div class="pos-stat-val">${initRisk.toFixed(0)}€</div>
             </div>
             <div>
-              <div class="pos-stat-label">Gain potentiel max</div>
-              <div class="pos-stat-val pos">+${(initRisk * p.rr1).toFixed(0)}€ (R:R ${p.rr1})</div>
+              <div class="pos-stat-label">🎁 Gain max possible ${helpIcon('rr')}</div>
+              <div class="pos-stat-val pos">+${(initRisk * p.rr1).toFixed(0)}€</div>
             </div>
           </div>
 
-          <div style="margin:10px 0 4px;font-size:0.72em;color:#94a3b8">Progression vers l'objectif</div>
+          <div style="margin:14px 0 4px;font-size:0.72em;color:#94a3b8;text-align:center">
+            📏 Où en est le prix entre l'achat et l'objectif ?
+          </div>
           <div class="progress-tp"><div style="width:${progressPct}%"></div></div>
           <div class="progress-marks">
-            <span>SL ${p.sl.toFixed(4)}</span>
-            <span>Entrée</span>
-            <span>TP ${p.tp1.toFixed(4)}</span>
+            <span>🛡️ Sécurité</span>
+            <span>🔵 Achat</span>
+            <span>🎯 Objectif</span>
           </div>
 
-          ${chartHtml}
+          <div style="margin-top:14px">
+            <div style="font-size:0.78em;color:#cbd5e1;margin-bottom:6px;font-weight:600">📊 Le graphique du trade ${helpIcon('candle')}</div>
+            ${chartHtml}
+          </div>
           ${validHtml}
         </div>
       </div>`;
