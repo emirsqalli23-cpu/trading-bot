@@ -284,10 +284,10 @@
       "time": "2026-04-29T18:12:01.339850+00:00"
     }
   ],
-  "timestamp": "2026-05-02T18:03:43.521073+00:00",
+  "timestamp": "2026-05-02T18:08:44.219827+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-02T18:03:39.609566+00:00",
+    "time": "2026-05-02T18:08:41.798588+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -319,12 +319,12 @@
         "symbol": "ETH/USD",
         "decision": "WAIT_MSS",
         "details": [
-          "Attendu BULLISH_MSS, actuel BEARISH_MSS"
+          "Attendu BULLISH_MSS, actuel None"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": "BEARISH_MSS",
+        "mss": null,
         "bias": "LONG"
       },
       {
