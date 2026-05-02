@@ -271,8 +271,9 @@
           "detail": "Heure o\u00f9 les grosses banques tradent"
         }
       ],
-      "open_time": "2026-04-30T10:00:00+00:00",
-      "open_time_estimated": true
+      "open_time": "2026-04-30T19:00:00+00:00",
+      "open_time_estimated": true,
+      "open_time_note": "Estimation : ouvert pendant la killzone NY PM (19h-20h UTC) le 30 avril, juste apr\u00e8s la fermeture du pr\u00e9c\u00e9dent trade GBP/USD \u00e0 18:54"
     }
   },
   "trades": [
