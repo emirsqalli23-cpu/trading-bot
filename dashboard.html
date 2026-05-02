@@ -446,10 +446,37 @@ function renderPipeline(state) {
   return html;
 }
 
-// Génère un mini-graphique candlestick SVG avec marqueurs Entry/SL/TP
-function renderChart(candles, entry, sl, tp, direction) {
+// Trouve l'index de la bougie où la position a été ouverte
+// Stratégie : si on a open_time → match par timestamp, sinon par prix d'entrée
+function findOpenCandleIndex(candles, entry, openTime) {
+  if (!candles || !candles.length) return -1;
+  // Si openTime dispo, match par timestamp le plus proche
+  if (openTime) {
+    const target = new Date(openTime).getTime();
+    let bestIdx = 0, bestDiff = Infinity;
+    candles.forEach((c, i) => {
+      const ts = typeof c.ts === "string" ? new Date(c.ts).getTime() : c.ts * 1000;
+      const diff = Math.abs(ts - target);
+      if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+    });
+    return bestIdx;
+  }
+  // Fallback : la bougie qui a le mieux englobé le prix d'entrée
+  let bestIdx = -1, bestDiff = Infinity;
+  candles.forEach((c, i) => {
+    if (entry >= c.l && entry <= c.h) {
+      const mid = (c.h + c.l) / 2;
+      const diff = Math.abs(mid - entry);
+      if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+    }
+  });
+  return bestIdx;
+}
+
+// Génère un mini-graphique candlestick SVG avec marqueurs Entry/SL/TP + bougie d'ouverture
+function renderChart(candles, entry, sl, tp, direction, openTime) {
   if (!candles || candles.length === 0) return "";
-  const W = 320, H = 140, PAD = 8;
+  const W = 320, H = 160, PAD = 8;
   const innerW = W - PAD * 2, innerH = H - PAD * 2;
 
   // Plage de prix incluant SL et TP
@@ -458,55 +485,90 @@ function renderChart(candles, entry, sl, tp, direction) {
   let minP = Math.min(...lows, sl, tp, entry);
   let maxP = Math.max(...highs, sl, tp, entry);
   const range = maxP - minP || 1;
-  // Marge 5% en haut et bas
   minP -= range * 0.05;
   maxP += range * 0.05;
   const totalRange = maxP - minP;
 
   const xStep = innerW / candles.length;
   const cw = Math.max(2, xStep * 0.7);
-
   const yPos = (price) => PAD + innerH * (1 - (price - minP) / totalRange);
 
+  // Trouve la bougie d'ouverture
+  const openIdx = findOpenCandleIndex(candles, entry, openTime);
+
   let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-  // Grille horizontale
+  // Grille
   for (let i = 1; i < 4; i++) {
     const y = PAD + (innerH * i) / 4;
     svg += `<line x1="${PAD}" y1="${y}" x2="${W-PAD}" y2="${y}" stroke="#252d36" stroke-width="0.5"/>`;
   }
+
+  // Zone "avant l'ouverture" (grisée légèrement) — montre clairement où est la rupture
+  if (openIdx >= 0) {
+    const xOpen = PAD + openIdx * xStep;
+    svg += `<rect x="${PAD}" y="${PAD}" width="${xOpen - PAD}" height="${innerH}" fill="#252d36" opacity="0.3"/>`;
+  }
+
   // Bougies
   candles.forEach((c, i) => {
     const x = PAD + i * xStep + xStep/2;
     const yH = yPos(c.h), yL = yPos(c.l), yO = yPos(c.o), yC = yPos(c.c);
     const up = c.c >= c.o;
     const color = up ? "#22c55e" : "#ef4444";
-    // Mèche
     svg += `<line x1="${x}" y1="${yH}" x2="${x}" y2="${yL}" stroke="${color}" stroke-width="0.8"/>`;
-    // Corps
     svg += `<rect x="${x - cw/2}" y="${Math.min(yO, yC)}" width="${cw}" height="${Math.max(1, Math.abs(yC - yO))}" fill="${color}"/>`;
   });
+
   // Lignes Entry / SL / TP
   const yE = yPos(entry), ySL = yPos(sl), yTP = yPos(tp);
   svg += `<line x1="${PAD}" y1="${yE}" x2="${W-PAD}" y2="${yE}" stroke="#3b82f6" stroke-width="1" stroke-dasharray="3,3"/>`;
   svg += `<line x1="${PAD}" y1="${ySL}" x2="${W-PAD}" y2="${ySL}" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,3"/>`;
   svg += `<line x1="${PAD}" y1="${yTP}" x2="${W-PAD}" y2="${yTP}" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,3"/>`;
-  // Étiquettes
+
+  // Marqueur vertical de l'ouverture + flèche + label "OUVERT ICI"
+  if (openIdx >= 0) {
+    const xOpen = PAD + openIdx * xStep + xStep/2;
+    const dirCol = direction === "LONG" ? "#22c55e" : "#ef4444";
+    const arrow  = direction === "LONG" ? "▲" : "▼";
+    // Ligne verticale épaisse
+    svg += `<line x1="${xOpen}" y1="${PAD}" x2="${xOpen}" y2="${H-PAD}" stroke="${dirCol}" stroke-width="2" stroke-dasharray="2,2" opacity="0.9"/>`;
+    // Cercle pulsant à l'entrée
+    svg += `<circle cx="${xOpen}" cy="${yE}" r="5" fill="${dirCol}" stroke="white" stroke-width="1.5">
+      <animate attributeName="r" values="5;7;5" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
+    </circle>`;
+    // Flèche au-dessus
+    svg += `<text x="${xOpen}" y="${PAD+12}" text-anchor="middle" fill="${dirCol}" font-size="14" font-weight="900">${arrow}</text>`;
+    // Label "OUVERT" avec fond blanc
+    const labelX = openIdx < candles.length / 2 ? xOpen + 6 : xOpen - 6;
+    const anchor = openIdx < candles.length / 2 ? "start" : "end";
+    svg += `<rect x="${anchor === 'start' ? labelX-2 : labelX-50}" y="${PAD+18}" width="52" height="13" rx="3" fill="${dirCol}"/>`;
+    svg += `<text x="${labelX + (anchor === 'start' ? 0 : -2)}" y="${PAD+27}" text-anchor="${anchor}" fill="white" font-size="9" font-weight="700">🚀 OUVERT</text>`;
+  }
+
+  // Étiquettes Entry/SL/TP à droite
   svg += `<text x="${W-PAD-2}" y="${yE-2}"  text-anchor="end" fill="#3b82f6" font-size="9" font-weight="700">Entrée ${entry.toFixed(4)}</text>`;
   svg += `<text x="${W-PAD-2}" y="${ySL-2}" text-anchor="end" fill="#ef4444" font-size="9" font-weight="700">SL ${sl.toFixed(4)}</text>`;
   svg += `<text x="${W-PAD-2}" y="${yTP-2}" text-anchor="end" fill="#22c55e" font-size="9" font-weight="700">TP ${tp.toFixed(4)}</text>`;
-  // Flèche direction sur la dernière bougie
+
+  // Indicateur "Maintenant" sur la dernière bougie
   const lastX = PAD + (candles.length - 0.5) * xStep;
-  const arrow = direction === "LONG" ? "▲" : "▼";
-  const arrCol = direction === "LONG" ? "#22c55e" : "#ef4444";
-  svg += `<text x="${lastX}" y="${yE+4}" text-anchor="middle" fill="${arrCol}" font-size="14" font-weight="900">${arrow}</text>`;
+  const lastClose = candles[candles.length - 1].c;
+  const yNow = yPos(lastClose);
+  svg += `<circle cx="${lastX}" cy="${yNow}" r="3" fill="white" stroke="#0f1419" stroke-width="1"/>`;
+  svg += `<text x="${lastX-4}" y="${yNow-6}" text-anchor="end" fill="white" font-size="9" font-weight="700">Maintenant</text>`;
+
   svg += `</svg>`;
 
   return `<div class="trade-chart">${svg}
     <div class="chart-legend">
+      <span><span class="dot" style="background:${direction === 'LONG' ? '#22c55e' : '#ef4444'}"></span>🚀 Bougie d'ouverture</span>
       <span><span class="dot" style="background:#3b82f6"></span>Entrée</span>
-      <span><span class="dot" style="background:#22c55e"></span>TP (objectif)</span>
-      <span><span class="dot" style="background:#ef4444"></span>SL (sécurité)</span>
-      <span style="color:#6b7785">30 dernières heures</span>
+      <span><span class="dot" style="background:#22c55e"></span>TP</span>
+      <span><span class="dot" style="background:#ef4444"></span>SL</span>
+    </div>
+    <div style="font-size:0.7em;color:#6b7785;margin-top:4px;text-align:center">
+      Zone grisée = avant l'ouverture · 30 dernières heures
     </div>
   </div>`;
 }
@@ -546,7 +608,7 @@ function renderMarket(market) {
       // Graphique SVG mini-candlestick
       let chartHtml = "";
       if (p.chart_candles && p.chart_candles.length > 0) {
-        chartHtml = renderChart(p.chart_candles, p.entry, p.sl, p.tp1, p.direction);
+        chartHtml = renderChart(p.chart_candles, p.entry, p.sl, p.tp1, p.direction, p.open_time);
       }
 
       // Checklist des validations
@@ -637,112 +699,108 @@ document.querySelectorAll(".tab").forEach(t => {
 loadAll();
 setInterval(loadAll, 30000);
 
-// ═══════ ROBOT MASCOTTE — vie autonome ═══════
-const ROBOT_PHRASES = {
-  sleeping: [
-    "Hors killzone... 💤",
-    "Je dors un peu...",
-    "Pas de bonne heure pour trader",
-    "Réveille-moi à Londres ☕",
-  ],
-  working: [
-    "J'analyse les bougies... 🔍",
-    "Je cherche un MSS...",
-    "J'observe le DXY...",
-    "Calcul du R:R en cours",
-    "Vérification des news 📰",
-    "Je consulte les pros (COT)",
-    "Régime du marché ?",
-  ],
-  trading: [
-    "🚀 Position ouverte !",
-    "Je trade en ce moment !",
-    "On parie sur la hausse !",
-    "Allez le bot !",
-  ],
-  excited: [
-    "🎉 +50€ encaissés !",
-    "💰 TP touché !",
-    "Pari gagné !",
-    "Easy money 💵",
-    "C'est pour ça qu'on bosse !",
-  ],
-  sad: [
-    "❌ Trade perdu...",
-    "Pas grave, on continue",
-    "Le SL fait son job 🛡️",
-    "Prochain sera le bon",
-  ],
-  blocked: [
-    "🚫 Trade bloqué",
-    "Trop risqué cette fois",
-    "Les filtres disent non",
-    "Discipline avant tout",
-  ],
-  idle: [
-    "Tout est sous contrôle 👍",
-    "Je veille... 👀",
-    "RAS pour l'instant",
-    "Je surveille les 3 marchés",
-  ],
-};
-
-let lastRobotMood = null;
-let lastTradeCount = 0;
+// ═══════ ROBOT MASCOTTE — reflète uniquement les actions réelles du bot ═══════
+let lastTradeKey = null;        // "marché:nb_trades" pour détecter les nouveaux
 let robotBubbleTimeout = null;
 
-function detectRobotMood() {
-  // Total positions ouvertes
-  let openPositions = 0;
-  let totalTrades = 0;
-  let lastTrade = null;
-  let inKillzone = false;
-  let isAnalyzing = false;
-  let isBlocked = false;
+// Construit le message basé STRICTEMENT sur l'état réel du bot
+function buildRobotMessage() {
+  let openPositions = [];
+  let recentTrade = null;       // dernier trade tous marchés confondus
+  let analyzeTarget = null;     // symbole en cours d'analyse
+  let lastCycleStatus = null;
+  let killzoneInfo = null;
+  let blockReason = null;
 
-  Object.values(states).forEach(s => {
+  Object.entries(states).forEach(([market, s]) => {
     if (!s) return;
-    openPositions += Object.keys(s.positions || {}).length;
-    totalTrades   += (s.trades || []).length;
-    const trades = s.trades || [];
-    if (trades.length > 0) {
-      const last = trades[trades.length - 1];
-      if (!lastTrade || last.time > lastTrade.time) lastTrade = last;
-    }
+    Object.entries(s.positions || {}).forEach(([sym, p]) => {
+      openPositions.push({ market, sym, ...p });
+    });
+    (s.trades || []).forEach(t => {
+      if (!recentTrade || t.time > recentTrade.time) {
+        recentTrade = { ...t, market };
+      }
+    });
     const lc = s.last_cycle;
     if (lc) {
-      if (lc.checks?.killzone?.ok) inKillzone = true;
-      if (lc.status === "ANALYZED") isAnalyzing = true;
-      if ((lc.symbols || []).some(x => (x.decision || "").startsWith("BLOCKED"))) isBlocked = true;
+      lastCycleStatus = lc.status;
+      if (lc.checks?.killzone) killzoneInfo = lc.checks.killzone;
+      // Cherche un symbole bloqué pour message précis
+      (lc.symbols || []).forEach(x => {
+        if ((x.decision || "").startsWith("BLOCKED")) {
+          blockReason = { market, sym: x.symbol, decision: x.decision, details: x.details };
+        }
+        if (x.decision === "WAIT_MSS" && !analyzeTarget) {
+          analyzeTarget = { market, sym: x.symbol };
+        }
+      });
     }
   });
 
-  // Trade fraîchement clos ?
-  if (lastTrade && totalTrades > lastTradeCount) {
-    lastTradeCount = totalTrades;
-    if (lastTrade.pnl > 0) return "excited";
-    if (lastTrade.pnl < 0) return "sad";
+  // 1. PRIORITÉ : trade clos très récemment (< 20 min)
+  if (recentTrade) {
+    const ageMin = (Date.now() - new Date(recentTrade.time).getTime()) / 60000;
+    if (ageMin < 20) {
+      const sign = recentTrade.pnl >= 0 ? "+" : "";
+      const pnl  = `${sign}${Math.round(recentTrade.pnl)}€`;
+      if (recentTrade.type === "TP_PARTIAL") return { mood: "excited", msg: `💰 50% pris sur ${recentTrade.symbol} ${pnl}` };
+      if (recentTrade.type === "TP_EXTENDED") return { mood: "excited", msg: `🎯 TP touché ${recentTrade.symbol} ${pnl}` };
+      if (recentTrade.type === "TRAIL_EXIT") return { mood: "excited", msg: `🛡️ Trailing fermé ${pnl}` };
+      if (recentTrade.type === "SL")        return { mood: "sad",     msg: `❌ SL touché ${recentTrade.symbol} ${pnl}` };
+      if (recentTrade.type === "BE")        return { mood: "idle",    msg: `⚪ Pari nul sur ${recentTrade.symbol}` };
+      if (recentTrade.type === "SHOCK_EXIT") return { mood: "sad",    msg: `🚨 Sortie d'urgence sur ${recentTrade.symbol}` };
+    }
   }
-  lastTradeCount = totalTrades;
 
-  if (openPositions > 0) return "trading";
-  if (!inKillzone)       return "sleeping";
-  if (isBlocked)         return "blocked";
-  if (isAnalyzing)       return "working";
-  return "idle";
+  // 2. Position ouverte → afficher la plus récente
+  if (openPositions.length > 0) {
+    const p = openPositions[0];
+    const dirEmoji = p.direction === "LONG" ? "📈" : "📉";
+    if (p.tp1_taken)     return { mood: "trading", msg: `🎯 Trailing ${p.sym} ${dirEmoji}` };
+    if (p.be_set)        return { mood: "trading", msg: `🛡️ Breakeven ${p.sym} ${dirEmoji}` };
+    return { mood: "trading", msg: `🚀 ${p.direction} ${p.sym} ouvert` };
+  }
+
+  // 3. Hors killzone
+  if (killzoneInfo && !killzoneInfo.ok) {
+    return { mood: "sleeping", msg: `💤 ${killzoneInfo.name || "Hors killzone"}` };
+  }
+
+  // 4. Trade bloqué par un filtre
+  if (blockReason) {
+    const map = {
+      "BLOCKED_NEWS":        "📰 News à risque",
+      "BLOCKED_DXY":         "💵 DXY contredit",
+      "BLOCKED_YIELDS":      "🏦 Yields contredisent",
+      "BLOCKED_COT":         "🏛️ Pros opposés",
+      "BLOCKED_RANGE":       "📉 Marché en range",
+      "BLOCKED_CORRELATION": "🔗 Paire corrélée déjà ouverte",
+    };
+    return { mood: "blocked", msg: `${map[blockReason.decision] || "🚫 Trade bloqué"}` };
+  }
+
+  // 5. Analyse en cours
+  if (analyzeTarget) {
+    return { mood: "working", msg: `🔍 Analyse ${analyzeTarget.sym}...` };
+  }
+  if (lastCycleStatus === "ANALYZED") {
+    return { mood: "working", msg: `🔍 Aucun setup pour l'instant` };
+  }
+
+  // 6. Idle par défaut
+  return { mood: "idle", msg: `👀 Je surveille les 3 marchés` };
 }
 
-function setRobotMood(mood, customMsg) {
+function setRobotMood(mood, msg) {
   const robot = document.getElementById("robotMascot");
   const bubble = document.getElementById("robotBubble");
   const zzz = document.getElementById("robotZzz");
   if (!robot) return;
 
-  // Reset classes
   robot.classList.remove("sleeping", "excited", "working");
   zzz.style.display = "none";
 
-  // Apply mood
   if (mood === "sleeping") {
     robot.classList.add("sleeping");
     zzz.style.display = "block";
@@ -753,17 +811,14 @@ function setRobotMood(mood, customMsg) {
     robot.classList.add("working");
   }
 
-  // Phrase aléatoire
-  const list = ROBOT_PHRASES[mood] || ROBOT_PHRASES.idle;
-  const phrase = customMsg || list[Math.floor(Math.random() * list.length)];
-  bubble.textContent = phrase;
+  bubble.textContent = msg;
   bubble.style.display = "block";
+  bubble.style.opacity = "1";
 
   clearTimeout(robotBubbleTimeout);
   robotBubbleTimeout = setTimeout(() => {
     bubble.style.opacity = "0";
-    setTimeout(() => { bubble.style.display = "none"; bubble.style.opacity = "1"; }, 300);
-  }, 6000);
+  }, 8000);
 }
 
 function spawnStars() {
@@ -786,31 +841,19 @@ function spawnStars() {
 }
 
 function robotClick() {
-  const moods = ["working", "excited", "blocked", "idle", "trading"];
-  const mood = moods[Math.floor(Math.random() * moods.length)];
-  setRobotMood(mood);
-  // Easter egg : 1/5 chance de phrase spéciale
-  if (Math.random() < 0.2) {
-    setTimeout(() => setRobotMood("idle", "Arrête de me cliquer ! 😅"), 2000);
-  }
+  // Tap = ré-affiche immédiatement le statut actuel du bot
+  refreshRobot();
 }
 
 function refreshRobot() {
-  const mood = detectRobotMood();
-  if (mood !== lastRobotMood) {
-    setRobotMood(mood);
-    lastRobotMood = mood;
-  }
+  const { mood, msg } = buildRobotMessage();
+  setRobotMood(mood, msg);
 }
 
-// Première humeur après chargement initial
+// Première humeur après chargement initial des states
 setTimeout(refreshRobot, 1500);
-// Re-check toutes les 30s (en sync avec loadAll)
+// Re-check toutes les 30s (synchro avec loadAll)
 setInterval(refreshRobot, 30000);
-// Phrase aléatoire toutes les 60s même si l'humeur ne change pas
-setInterval(() => {
-  if (lastRobotMood) setRobotMood(lastRobotMood);
-}, 60000);
 </script>
 </body>
 </html>
