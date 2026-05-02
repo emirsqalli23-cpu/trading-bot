@@ -284,10 +284,10 @@
       "time": "2026-04-29T18:12:01.339850+00:00"
     }
   ],
-  "timestamp": "2026-05-02T05:10:36.637898+00:00",
+  "timestamp": "2026-05-02T06:06:37.025734+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-01T23:55:45.124450+00:00",
+    "time": "2026-05-02T06:06:36.469510+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -299,7 +299,7 @@
       },
       "killzone": {
         "ok": false,
-        "name": "hors zone (23h UTC)"
+        "name": "hors zone (6h UTC)"
       }
     },
     "symbols": [],
