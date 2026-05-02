@@ -698,6 +698,8 @@ document.querySelectorAll(".tab").forEach(t => {
     t.classList.add("active");
     activeTab = t.dataset.tab;
     document.getElementById("content").innerHTML = renderMarket(activeTab);
+    // Le robot se met à jour pour refléter le nouvel onglet
+    refreshRobot();
   });
 });
 
@@ -707,6 +709,10 @@ setInterval(loadAll, 30000);
 // ═══════ ROBOT MASCOTTE — reflète uniquement les actions réelles du bot ═══════
 let lastTradeKey = null;        // "marché:nb_trades" pour détecter les nouveaux
 let robotBubbleTimeout = null;
+
+function marketLabel(m) {
+  return m === "crypto" ? "Crypto" : m === "gold" ? "Or" : "Forex";
+}
 
 // Format heure UTC humain
 function fmtTimeUTC(iso) {
@@ -732,8 +738,17 @@ function fmtAge(iso) {
   return `il y a ${Math.floor(min/1440)}j`;
 }
 
-// Construit le message pédagogique avec horaires exacts
-function buildRobotMessage() {
+// Construit le message pédagogique avec horaires exacts — pour UN marché donné
+function buildRobotMessage(market) {
+  market = market || activeTab || "forex";
+  const s = states[market];
+  if (!s) {
+    return { mood: "idle",
+      title: `⏳ ${marketLabel(market)} non disponible`,
+      explain: `Les données pour ce marché ne sont pas encore chargées.`,
+      time: "" };
+  }
+
   let openPositions = [];
   let recentTrade = null;
   let analyzeTarget = null;
@@ -742,31 +757,32 @@ function buildRobotMessage() {
   let cycleTime = null;
   let blockReason = null;
 
-  Object.entries(states).forEach(([market, s]) => {
-    if (!s) return;
-    Object.entries(s.positions || {}).forEach(([sym, p]) => {
-      openPositions.push({ market, sym, ...p });
-    });
-    (s.trades || []).forEach(t => {
-      if (!recentTrade || t.time > recentTrade.time) {
-        recentTrade = { ...t, market };
-      }
-    });
-    const lc = s.last_cycle;
-    if (lc) {
-      lastCycleStatus = lc.status;
-      if (lc.time && (!cycleTime || lc.time > cycleTime)) cycleTime = lc.time;
-      if (lc.checks?.killzone) killzoneInfo = lc.checks.killzone;
-      (lc.symbols || []).forEach(x => {
-        if ((x.decision || "").startsWith("BLOCKED")) {
-          blockReason = { market, sym: x.symbol, decision: x.decision, details: x.details };
-        }
-        if (x.decision === "WAIT_MSS" && !analyzeTarget) {
-          analyzeTarget = { market, sym: x.symbol };
-        }
-      });
+  Object.entries(s.positions || {}).forEach(([sym, p]) => {
+    openPositions.push({ market, sym, ...p });
+  });
+  (s.trades || []).forEach(t => {
+    if (!recentTrade || t.time > recentTrade.time) {
+      recentTrade = { ...t, market };
     }
   });
+  const lc = s.last_cycle;
+  if (lc) {
+    lastCycleStatus = lc.status;
+    cycleTime = lc.time;
+    if (lc.checks?.killzone) killzoneInfo = lc.checks.killzone;
+    (lc.symbols || []).forEach(x => {
+      if ((x.decision || "").startsWith("BLOCKED")) {
+        blockReason = { market, sym: x.symbol, decision: x.decision, details: x.details };
+      }
+      if (x.decision === "WAIT_MSS" && !analyzeTarget) {
+        analyzeTarget = { market, sym: x.symbol };
+      }
+    });
+  }
+  const mEmoji = market === "crypto" ? "🪙" : market === "gold" ? "🥇" : "💱";
+  const mLabel = marketLabel(market);
+
+  const prefix = `${mEmoji} ${mLabel}`;
 
   // ─── 1. Trade clos récemment (< 25 min) ───
   if (recentTrade) {
@@ -778,32 +794,32 @@ function buildRobotMessage() {
       switch (recentTrade.type) {
         case "TP_PARTIAL":
           return { mood: "excited",
-            title: `💰 50% pris sur ${recentTrade.symbol}`,
+            title: `${prefix} · 💰 50% pris sur ${recentTrade.symbol}`,
             explain: `Le prix a touché mon objectif. J'ai vendu la moitié pour sécuriser ${pnl}, l'autre moitié continue avec un trailing stop.`,
             time: t };
         case "TP_EXTENDED":
           return { mood: "excited",
-            title: `🎯 Objectif final atteint ${pnl}`,
-            explain: `Le prix a fait tout le chemin que j'avais prévu. Trade clôturé en gain.`,
+            title: `${prefix} · 🎯 Objectif atteint ${pnl}`,
+            explain: `Le prix a fait tout le chemin prévu. Trade clôturé en gain sur ${recentTrade.symbol}.`,
             time: t };
         case "TRAIL_EXIT":
           return { mood: "excited",
-            title: `🛡️ Trailing fermé ${pnl}`,
+            title: `${prefix} · 🛡️ Trailing fermé ${pnl}`,
             explain: `Le prix a reculé et touché mon stop suiveur. Mais comme il avait suivi le prix, on sort en gain.`,
             time: t };
         case "SL":
           return { mood: "sad",
-            title: `❌ SL touché ${recentTrade.symbol} ${pnl}`,
+            title: `${prefix} · ❌ SL touché ${recentTrade.symbol} ${pnl}`,
             explain: `Le prix est allé contre moi. Ma sécurité (stop-loss) a fait son boulot, je perds peu.`,
             time: t };
         case "BE":
           return { mood: "idle",
-            title: `⚪ Pari nul sur ${recentTrade.symbol}`,
-            explain: `Le prix est revenu à mon prix d'entrée. Sortie sans gain ni perte. Mon SL m'a protégé.`,
+            title: `${prefix} · ⚪ Pari nul sur ${recentTrade.symbol}`,
+            explain: `Le prix est revenu à mon prix d'entrée. Sortie sans gain ni perte.`,
             time: t };
         case "SHOCK_EXIT":
           return { mood: "sad",
-            title: `🚨 Sortie d'urgence ${recentTrade.symbol}`,
+            title: `${prefix} · 🚨 Sortie d'urgence ${recentTrade.symbol}`,
             explain: `Une grosse news catastrophique vient de tomber. Je ferme la position pour éviter le pire.`,
             time: t };
       }
@@ -818,16 +834,16 @@ function buildRobotMessage() {
     const opened = p.open_time ? `${fmtTimeUTC(p.open_time)} · ${fmtAge(p.open_time)}` : "il y a quelques heures";
     if (p.tp1_taken)
       return { mood: "trading",
-        title: `🎯 Trailing actif sur ${sym}`,
+        title: `${prefix} · 🎯 Trailing actif sur ${sym}`,
         explain: `J'ai déjà pris 50% du gain. La moitié restante suit le prix : si ça redescend je sors avec un bonus, sinon je laisse courir.`,
         time: `Ouvert à ${opened}` };
     if (p.be_set)
       return { mood: "trading",
-        title: `🛡️ Breakeven sur ${sym}`,
-        explain: `Le prix est à mi-chemin de mon objectif. J'ai remonté ma sécurité au prix d'achat. Maintenant je ne peux PLUS rien perdre sur ce trade.`,
+        title: `${prefix} · 🛡️ Breakeven sur ${sym}`,
+        explain: `Le prix est à mi-chemin de mon objectif. J'ai remonté ma sécurité au prix d'achat. Maintenant je ne peux PLUS rien perdre.`,
         time: `Ouvert à ${opened}` };
     return { mood: "trading",
-      title: `🚀 ${dirWord} en cours sur ${sym}`,
+      title: `${prefix} · 🚀 ${dirWord} sur ${sym}`,
       explain: `J'ai ouvert un ${p.direction} à ${p.entry?.toFixed(4) || "?"}. Objectif : ${p.tp1?.toFixed(4) || "?"}. Sécurité : ${p.sl?.toFixed(4) || "?"}.`,
       time: `Ouvert à ${opened}` };
   }
@@ -835,52 +851,52 @@ function buildRobotMessage() {
   // ─── 3. Hors killzone ───
   if (killzoneInfo && !killzoneInfo.ok) {
     return { mood: "sleeping",
-      title: `💤 Hors killzone`,
-      explain: `Les "killzones" sont les heures où les grosses banques tradent (Londres 7-10h UTC, NY 12-15h, NY PM 18-20h). En dehors, le marché bouge peu — je dors pour économiser des trades inutiles.`,
+      title: `${prefix} · 💤 Hors killzone`,
+      explain: `Les "killzones" sont les heures où les grosses banques tradent (Londres 7-10h UTC, NY 12-15h, NY PM 18-20h). En dehors, je dors pour économiser des trades inutiles.`,
       time: `Vérifié à ${fmtTimeUTC(cycleTime)}` };
   }
 
-  // ─── 4. Trade bloqué par filtre (avec explication pédagogique) ───
+  // ─── 4. Trade bloqué par filtre ───
   if (blockReason) {
     const map = {
       "BLOCKED_NEWS":        { t: "📰 News à risque",
-                               e: `Une grosse news (FOMC, NFP, CPI...) tombe dans les 30 prochaines minutes. Trader pendant ces moments c'est jouer à pile ou face. J'attends que ça passe.` },
+                               e: `Une grosse news (FOMC, NFP, CPI...) tombe dans les 30 prochaines minutes. Trader pendant ces moments c'est jouer à pile ou face. J'attends.` },
       "BLOCKED_DXY":         { t: "💵 Dollar contredit",
                                e: `Le dollar US monte (DXY haussier), ce qui pousse l'or et l'EUR/USD à la baisse. Si je voulais acheter, ça contredirait. Donc je passe.` },
       "BLOCKED_YIELDS":      { t: "🏦 Taux US contredisent",
-                               e: `Les rendements obligataires US 10 ans bougent dans le sens opposé au trade. Quand les yields montent, l'or baisse — pas le bon moment pour acheter de l'or.` },
+                               e: `Les rendements obligataires US 10 ans bougent dans le sens opposé au trade. Pas le bon moment.` },
       "BLOCKED_COT":         { t: "🏛️ Pros opposés",
-                               e: `Le rapport CFTC montre que les hedge funds professionnels sont positionnés à l'opposé de mon trade. Je préfère ne pas ramer contre les pros.` },
+                               e: `Le rapport CFTC montre que les hedge funds sont positionnés à l'opposé de mon trade. Je ne rame pas contre les pros.` },
       "BLOCKED_RANGE":       { t: "📉 Marché plat (range)",
-                               e: `L'ADX (force de tendance) est trop bas. Le marché oscille sans direction claire. Ma méthode ICT marche mal en range, je préfère attendre une vraie tendance.` },
-      "BLOCKED_CORRELATION": { t: "🔗 Paire corrélée déjà ouverte",
-                               e: `J'ai déjà une position dans la même direction sur une paire fortement corrélée (ex: EUR/USD + GBP/USD). Doubler la position = doubler le risque. Je n'en ouvre pas une 2ème.` },
+                               e: `L'ADX (force de tendance) est trop bas. Le marché oscille sans direction. Ma méthode ICT marche mal en range.` },
+      "BLOCKED_CORRELATION": { t: "🔗 Paire corrélée ouverte",
+                               e: `J'ai déjà une position dans la même direction sur une paire corrélée. Doubler = doubler le risque.` },
     };
     const info = map[blockReason.decision] || { t: "🚫 Trade bloqué", e: "Une vérification a échoué." };
     return { mood: "blocked",
-      title: info.t,
-      explain: info.e,
+      title: `${prefix} · ${info.t}`,
+      explain: `${info.e}${blockReason.sym ? ` (sur ${blockReason.sym})` : ''}`,
       time: `Vérifié à ${fmtTimeUTC(cycleTime)}` };
   }
 
   // ─── 5. Analyse en cours ───
   if (analyzeTarget) {
     return { mood: "working",
-      title: `🔍 Analyse ${analyzeTarget.sym}`,
-      explain: `J'ai détecté la bonne tendance (D1 + H4 + H1) mais j'attends encore le signal de cassure (Market Structure Shift) sur 5 minutes pour entrer.`,
+      title: `${prefix} · 🔍 Analyse ${analyzeTarget.sym}`,
+      explain: `J'ai détecté la bonne tendance (D1 + H4 + H1) mais j'attends le signal de cassure (Market Structure Shift) sur 5 minutes pour entrer.`,
       time: `Cycle à ${fmtTimeUTC(cycleTime)}` };
   }
   if (lastCycleStatus === "ANALYZED") {
     return { mood: "working",
-      title: `🔍 Aucun setup`,
-      explain: `J'ai vérifié les 3 marchés, aucun ne remplit mes 9 critères pour ouvrir un trade. Je relance dans 5 minutes.`,
+      title: `${prefix} · 🔍 Aucun setup`,
+      explain: `J'ai vérifié ${mLabel}, aucun setup ne remplit mes 9 critères pour ouvrir un trade. Je relance dans 5 minutes.`,
       time: `Cycle à ${fmtTimeUTC(cycleTime)}` };
   }
 
   // ─── 6. Idle par défaut ───
   return { mood: "idle",
-    title: `👀 Surveillance active`,
-    explain: `Je tourne en boucle toutes les 5 minutes pour analyser crypto, or et forex. J'ouvre un trade uniquement si tous mes filtres sont alignés.`,
+    title: `${prefix} · 👀 Surveillance`,
+    explain: `Je surveille ${mLabel}. J'ouvre un trade uniquement si tous mes filtres sont alignés.`,
     time: cycleTime ? `Dernier cycle : ${fmtTimeUTC(cycleTime)}` : "" };
 }
 
