@@ -800,7 +800,12 @@ function renderMarket(market) {
 
   // Positions ouvertes — design redesigné avec PnL temps réel
   if (Object.keys(pos).length > 0) {
-    html += `<div class="card"><h3>📂 Positions en cours</h3>`;
+    const nbOpen = Object.keys(pos).length;
+    html += `<div class="card">
+      <h3>🟢 En cours <span style="font-weight:400;color:#94a3b8;font-size:0.85em">— ${nbOpen} position${nbOpen>1?'s':''} active${nbOpen>1?'s':''}</span></h3>
+      <div style="font-size:0.8em;color:#94a3b8;margin-bottom:10px;line-height:1.4">
+        💡 <b>Trades pas encore terminés.</b> L'argent est misé mais le résultat n'est pas encore connu (TP ou SL pas touché). Ils apparaîtront dans "Trades terminés" une fois fermés.
+      </div>`;
     for (const [sym, p] of Object.entries(pos)) {
       const dirIco = p.direction === "LONG" ? "📈" : "📉";
       const flags = [];
@@ -927,7 +932,13 @@ function renderMarket(market) {
         <td class="${t.pnl >= 0 ? 'pos' : 'neg'}">${fmt(t.pnl)}$</td>
       </tr>
     `).join("");
-    html += `<div class="card"><h3>📋 Trades récents</h3>
+    const wins = trades.filter(t => t.pnl > 0).length;
+    const losses = trades.filter(t => t.pnl < 0).length;
+    html += `<div class="card">
+      <h3>✅ Trades terminés <span style="font-weight:400;color:#94a3b8;font-size:0.85em">— ${trades.length} au total · ${wins}🟢 ${losses}🔴</span></h3>
+      <div style="font-size:0.8em;color:#94a3b8;margin-bottom:10px;line-height:1.4">
+        💡 <b>Trades fermés</b> avec résultat définitif (gain ou perte encaissé).
+      </div>
       <table><thead><tr><th>Date</th><th>Sym.</th><th>Type</th><th>P&L</th></tr></thead><tbody>${rows}</tbody></table>
     </div>`;
   }
