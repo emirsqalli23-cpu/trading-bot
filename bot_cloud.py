@@ -45,6 +45,17 @@ except Exception as _e:
     print(f"⚠️ Trade manager indisponible : {_e}")
     TM_OK = False
 
+# ── IG Markets broker (optionnel — DRY_RUN par défaut, pas d'ordre réel) ──
+try:
+    from ig_broker import IGBroker, bot_symbol_to_epic
+    IG_OK = True
+except Exception as _e:
+    print(f"⚠️ IG broker indisponible : {_e}")
+    IG_OK = False
+IG_ENABLED = os.environ.get("IG_ENABLED", "false").lower() == "true"
+IG_DRY_RUN = os.environ.get("IG_DRY_RUN", "true").lower() != "false"
+IG_ENV     = os.environ.get("IG_ENV", "live")
+
 # ── CONFIG GLOBALE ────────────────────────────────────────────────────────
 MARKET        = os.environ.get("MARKET", "crypto").lower()
 CAPITAL_START = 1000.0
@@ -756,6 +767,31 @@ def run():
             notify(f"🎯 Nouveau pari sur {nice}",
                    f"{nice} {direction_fr}\nMise : {risk_amount:.0f}$\nGain potentiel : +{round(risk_amount * plan['rr1']):.0f}$",
                    priority=5, tags=["rocket" if bias == "LONG" else "chart_with_downwards_trend"])
+
+            # ─── Mirror sur IG Markets (optionnel, DRY_RUN par défaut) ───
+            if IG_OK and IG_ENABLED:
+                ig_epic = bot_symbol_to_epic(sym)
+                if ig_epic:
+                    try:
+                        with IGBroker(environment=IG_ENV, dry_run=IG_DRY_RUN) as ig:
+                            ig_dir = "BUY" if bias == "LONG" else "SELL"
+                            # Calcul approximatif des distances en pips
+                            entry_p = plan["entry"]
+                            sl_dist = abs(entry_p - plan["sl"])
+                            tp_dist = abs(plan["tp1"] - entry_p)
+                            # Conversion en pips selon l'instrument (forex : 0.0001 = 1 pip)
+                            pip_factor = 10000 if "USD=X" in sym else 1
+                            sl_pips = round(sl_dist * pip_factor, 1)
+                            tp_pips = round(tp_dist * pip_factor, 1)
+                            ig_result = ig.open_position(
+                                epic=ig_epic, direction=ig_dir, size=1,
+                                stop_distance=sl_pips, limit_distance=tp_pips,
+                            )
+                            mode = "DRY_RUN simulé" if IG_DRY_RUN else "ENVOYÉ EN RÉEL"
+                            print(f"   🔌 IG {mode} : {ig_result}")
+                            sym_log["ig_mirror"] = {"mode": mode, "epic": ig_epic}
+                    except Exception as e:
+                        print(f"   ⚠️ IG mirror KO : {e}")
             print(f"✅ POSITION OUVERTE {nice} {bias} | Risque: {risk_amount:.2f}$")
             sym_log["decision"] = "POSITION_OPENED"
             sym_log["details"].append(f"{bias} @ {plan['entry']:.4f} | risque {risk_amount}$")
