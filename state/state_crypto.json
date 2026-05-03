@@ -284,10 +284,10 @@
       "time": "2026-04-29T18:12:01.339850+00:00"
     }
   ],
-  "timestamp": "2026-05-03T14:55:59.206881+00:00",
+  "timestamp": "2026-05-03T15:00:57.219136+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-03T14:55:54.604395+00:00",
+    "time": "2026-05-03T15:00:56.542750+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -298,51 +298,12 @@
         "pct": 0.0
       },
       "killzone": {
-        "ok": true,
-        "name": "Killzone NY Open"
+        "ok": false,
+        "name": "hors zone (15h UTC)"
       }
     },
-    "symbols": [
-      {
-        "symbol": "BTC/USD",
-        "decision": "RR_TOO_LOW",
-        "details": [
-          "R:R 0.29 < 2.0"
-        ],
-        "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": "BULLISH_MSS",
-        "bias": "LONG",
-        "cot": "NEUTRAL",
-        "adx": 25.7,
-        "regime": "TRENDING",
-        "rr": 0.29
-      },
-      {
-        "symbol": "ETH/USD",
-        "decision": "BLOCKED_RANGE",
-        "details": [
-          "ADX=16.1 (march\u00e9 plat)"
-        ],
-        "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": "BULLISH_MSS",
-        "bias": "LONG",
-        "cot": "NEUTRAL",
-        "adx": 16.1,
-        "regime": "RANGE"
-      },
-      {
-        "symbol": "SOL/USD",
-        "decision": "POSITION_OPEN",
-        "details": [
-          "Position SHORT en cours"
-        ]
-      }
-    ],
+    "symbols": [],
     "actions": [],
-    "status": "ANALYZED"
+    "status": "WAIT_KILLZONE"
   }
 }
