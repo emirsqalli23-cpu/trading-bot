@@ -46,10 +46,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-04T09:07:23.296457+00:00",
+  "timestamp": "2026-05-04T09:12:32.391476+00:00",
   "market": "forex",
   "last_cycle": {
-    "time": "2026-05-04T09:07:20.032584+00:00",
+    "time": "2026-05-04T09:12:29.209268+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -73,10 +73,15 @@
     "symbols": [
       {
         "symbol": "EUR/USD",
-        "decision": "BLOCKED_NEWS",
+        "decision": "WAIT_MSS",
         "details": [
-          "\ud83d\udea8 ECB policymaker Ka\u017eim\u00edr says that a rate hike in June is all but inevitable"
-        ]
+          "Attendu BEARISH_MSS, actuel None"
+        ],
+        "d1": "NEUTRAL",
+        "h4": "BEARISH",
+        "h1": "BEARISH",
+        "mss": null,
+        "bias": "SHORT"
       },
       {
         "symbol": "GBP/USD",
