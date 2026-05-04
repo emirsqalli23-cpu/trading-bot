@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-04T14:58:19.139517+00:00",
+  "timestamp": "2026-05-04T15:03:19.945098+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-04T14:58:17.976509+00:00",
+    "time": "2026-05-04T15:03:19.945037+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -16,31 +16,12 @@
         "pct": 0.0
       },
       "killzone": {
-        "ok": true,
-        "name": "Killzone NY Open"
-      },
-      "dxy": {
-        "trend": "NEUTRAL"
-      },
-      "yields_10y": {
-        "trend": "BULLISH"
+        "ok": false,
+        "name": "hors zone (15h UTC)"
       }
     },
-    "symbols": [
-      {
-        "symbol": "Or",
-        "decision": "WAIT_MSS",
-        "details": [
-          "Attendu BEARISH_MSS, actuel None"
-        ],
-        "d1": "BEARISH",
-        "h4": "BEARISH",
-        "h1": "BEARISH",
-        "mss": null,
-        "bias": "SHORT"
-      }
-    ],
+    "symbols": [],
     "actions": [],
-    "status": "ANALYZED"
+    "status": "WAIT_KILLZONE"
   }
 }
