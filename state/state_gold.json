@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-04T03:42:40.394019+00:00",
+  "timestamp": "2026-05-04T03:47:40.460066+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-04T03:42:33.233100+00:00",
+    "time": "2026-05-04T03:47:38.385037+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -29,16 +29,15 @@
     "symbols": [
       {
         "symbol": "Or",
-        "decision": "BLOCKED_COT",
+        "decision": "WAIT_MSS",
         "details": [
-          "Pros institutionnels LONG \u2192 contradicte SHORT"
+          "Attendu BEARISH_MSS, actuel None"
         ],
         "d1": "BEARISH",
         "h4": "BEARISH",
         "h1": "BEARISH",
-        "mss": "BEARISH_MSS",
-        "bias": "SHORT",
-        "cot": "BULLISH"
+        "mss": null,
+        "bias": "SHORT"
       }
     ],
     "actions": [],
