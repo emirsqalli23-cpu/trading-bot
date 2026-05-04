@@ -28,10 +28,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-03T23:57:12.629396+00:00",
+  "timestamp": "2026-05-04T00:02:16.282992+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-03T23:57:12.629319+00:00",
+    "time": "2026-05-04T00:02:11.089281+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -39,15 +39,53 @@
       },
       "daily_loss": {
         "ok": true,
-        "pct": 0.54
+        "pct": 0.0
       },
       "killzone": {
-        "ok": false,
-        "name": "hors zone (23h UTC)"
+        "ok": true,
+        "name": "Killzone Asia"
       }
     },
-    "symbols": [],
+    "symbols": [
+      {
+        "symbol": "BTC/USD",
+        "decision": "TREND_NOT_ALIGNED",
+        "details": [
+          "H4=BULLISH H1=BEARISH"
+        ],
+        "d1": "BULLISH",
+        "h4": "BULLISH",
+        "h1": "BEARISH",
+        "mss": null
+      },
+      {
+        "symbol": "ETH/USD",
+        "decision": "TREND_NOT_ALIGNED",
+        "details": [
+          "H4=BULLISH H1=BEARISH"
+        ],
+        "d1": "BULLISH",
+        "h4": "BULLISH",
+        "h1": "BEARISH",
+        "mss": null
+      },
+      {
+        "symbol": "SOL/USD",
+        "decision": "BLOCKED_RANGE",
+        "details": [
+          "ADX=17.3 (march\u00e9 plat)"
+        ],
+        "d1": "BEARISH",
+        "h4": "BEARISH",
+        "h1": "BEARISH",
+        "mss": "BEARISH_MSS",
+        "bias": "SHORT",
+        "cot": "NEUTRAL",
+        "adx": 17.3,
+        "regime": "RANGE"
+      }
+    ],
     "actions": [],
-    "status": "WAIT_KILLZONE"
+    "status": "ANALYZED"
   }
 }
