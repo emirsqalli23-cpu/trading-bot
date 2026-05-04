@@ -292,10 +292,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-04T18:52:31.183713+00:00",
+  "timestamp": "2026-05-04T18:57:34.650231+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-04T18:52:22.132557+00:00",
+    "time": "2026-05-04T18:57:30.892259+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -322,12 +322,12 @@
         "symbol": "ETH/USD",
         "decision": "WAIT_MSS",
         "details": [
-          "Attendu BULLISH_MSS, actuel BEARISH_MSS"
+          "Attendu BULLISH_MSS, actuel None"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": "BEARISH_MSS",
+        "mss": null,
         "bias": "LONG"
       },
       {
