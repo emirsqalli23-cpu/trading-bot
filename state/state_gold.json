@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-04T13:56:57.088657+00:00",
+  "timestamp": "2026-05-04T14:01:59.031819+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-04T13:56:55.687083+00:00",
+    "time": "2026-05-04T14:01:56.703104+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -29,15 +29,10 @@
     "symbols": [
       {
         "symbol": "Or",
-        "decision": "WAIT_MSS",
+        "decision": "BLOCKED_NEWS",
         "details": [
-          "Attendu BEARISH_MSS, actuel None"
-        ],
-        "d1": "BEARISH",
-        "h4": "BEARISH",
-        "h1": "BEARISH",
-        "mss": null,
-        "bias": "SHORT"
+          "\ud83d\udea8 Eight reasons why the US is headed towards an inflation problem"
+        ]
       }
     ],
     "actions": [],
