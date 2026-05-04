@@ -28,10 +28,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-04T14:10:39.158909+00:00",
+  "timestamp": "2026-05-04T14:15:47.962843+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-04T14:10:35.879412+00:00",
+    "time": "2026-05-04T14:15:44.464970+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -71,15 +71,14 @@
       },
       {
         "symbol": "SOL/USD",
-        "decision": "WAIT_MSS",
+        "decision": "TREND_NOT_ALIGNED",
         "details": [
-          "Attendu BEARISH_MSS, actuel None"
+          "H4=BULLISH H1=BEARISH"
         ],
         "d1": "BEARISH",
-        "h4": "BEARISH",
+        "h4": "BULLISH",
         "h1": "BEARISH",
-        "mss": null,
-        "bias": "SHORT"
+        "mss": null
       }
     ],
     "actions": [],
