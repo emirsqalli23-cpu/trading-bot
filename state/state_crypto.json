@@ -28,10 +28,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-04T02:58:51.941038+00:00",
+  "timestamp": "2026-05-04T03:03:49.387395+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-04T02:58:47.291404+00:00",
+    "time": "2026-05-04T03:03:49.387312+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -42,49 +42,12 @@
         "pct": 0.0
       },
       "killzone": {
-        "ok": true,
-        "name": "Killzone Asia"
+        "ok": false,
+        "name": "hors zone (3h UTC)"
       }
     },
-    "symbols": [
-      {
-        "symbol": "BTC/USD",
-        "decision": "WAIT_MSS",
-        "details": [
-          "Attendu BULLISH_MSS, actuel None"
-        ],
-        "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": null,
-        "bias": "LONG"
-      },
-      {
-        "symbol": "ETH/USD",
-        "decision": "WAIT_MSS",
-        "details": [
-          "Attendu BULLISH_MSS, actuel None"
-        ],
-        "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": null,
-        "bias": "LONG"
-      },
-      {
-        "symbol": "SOL/USD",
-        "decision": "AGAINST_D1",
-        "details": [
-          "LONG contre D1=BEARISH"
-        ],
-        "d1": "BEARISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": null,
-        "bias": "LONG"
-      }
-    ],
+    "symbols": [],
     "actions": [],
-    "status": "ANALYZED"
+    "status": "WAIT_KILLZONE"
   }
 }
