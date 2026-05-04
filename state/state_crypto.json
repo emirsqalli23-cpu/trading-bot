@@ -28,10 +28,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-04T02:38:48.585773+00:00",
+  "timestamp": "2026-05-04T02:43:49.220499+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-04T02:38:45.675195+00:00",
+    "time": "2026-05-04T02:43:45.803610+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -49,21 +49,9 @@
     "symbols": [
       {
         "symbol": "BTC/USD",
-        "decision": "WAIT_MSS",
-        "details": [
-          "Attendu BULLISH_MSS, actuel None"
-        ],
-        "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": null,
-        "bias": "LONG"
-      },
-      {
-        "symbol": "ETH/USD",
         "decision": "RR_TOO_LOW",
         "details": [
-          "R:R 1.26 < 2.0"
+          "R:R 1.02 < 2.0"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
@@ -71,21 +59,40 @@
         "mss": "BULLISH_MSS",
         "bias": "LONG",
         "cot": "NEUTRAL",
-        "adx": 21.1,
-        "regime": "NEUTRAL",
-        "rr": 1.26
+        "adx": 29.7,
+        "regime": "TRENDING",
+        "rr": 1.02
       },
       {
-        "symbol": "SOL/USD",
-        "decision": "AGAINST_D1",
+        "symbol": "ETH/USD",
+        "decision": "RR_TOO_LOW",
         "details": [
-          "LONG contre D1=BEARISH"
+          "R:R 1.34 < 2.0"
         ],
-        "d1": "BEARISH",
+        "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
         "mss": "BULLISH_MSS",
-        "bias": "LONG"
+        "bias": "LONG",
+        "cot": "NEUTRAL",
+        "adx": 21.2,
+        "regime": "NEUTRAL",
+        "rr": 1.34
+      },
+      {
+        "symbol": "SOL/USD",
+        "decision": "BLOCKED_RANGE",
+        "details": [
+          "ADX=16.3 (march\u00e9 plat)"
+        ],
+        "d1": "NEUTRAL",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": "BULLISH_MSS",
+        "bias": "LONG",
+        "cot": "NEUTRAL",
+        "adx": 16.3,
+        "regime": "RANGE"
       }
     ],
     "actions": [],
