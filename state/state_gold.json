@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-04T02:32:02.874027+00:00",
+  "timestamp": "2026-05-04T02:37:02.483284+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-04T02:31:59.497497+00:00",
+    "time": "2026-05-04T02:37:00.462307+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -29,10 +29,15 @@
     "symbols": [
       {
         "symbol": "Or",
-        "decision": "BLOCKED_NEWS",
+        "decision": "WAIT_MSS",
         "details": [
-          "\ud83d\udea8 RBNZ board member Gai says Hormuz shock does not warrant reflexive rate hikes"
-        ]
+          "Attendu BEARISH_MSS, actuel None"
+        ],
+        "d1": "BEARISH",
+        "h4": "BEARISH",
+        "h1": "BEARISH",
+        "mss": null,
+        "bias": "SHORT"
       }
     ],
     "actions": [],
