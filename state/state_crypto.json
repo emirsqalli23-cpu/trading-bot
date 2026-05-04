@@ -4,13 +4,13 @@
     "XBTUSD": {
       "direction": "LONG",
       "entry": 78267.0,
-      "sl": 77104.8278,
+      "sl": 78267.0,
       "initial_sl": 77104.8278,
       "tp1": 80597.2,
       "rr1": 2.01,
       "risk_amount": 18.93,
       "initial_risk_amount": 18.93,
-      "be_set": false,
+      "be_set": true,
       "tp1_taken": false,
       "trail_active": false,
       "open_time": "2026-05-04T14:26:06.975776+00:00",
@@ -292,10 +292,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-04T14:26:08.636850+00:00",
+  "timestamp": "2026-05-04T14:46:37.383337+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-04T14:26:02.523054+00:00",
+    "time": "2026-05-04T14:46:34.478096+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -313,30 +313,21 @@
     "symbols": [
       {
         "symbol": "BTC/USD",
-        "decision": "POSITION_OPENED",
+        "decision": "POSITION_OPEN",
         "details": [
-          "LONG @ 78267.0000 | risque 18.93$"
-        ],
-        "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": "BULLISH_MSS",
-        "bias": "LONG",
-        "cot": "NEUTRAL",
-        "adx": 30.4,
-        "regime": "TRENDING",
-        "rr": 2.01
+          "Position LONG en cours"
+        ]
       },
       {
         "symbol": "ETH/USD",
-        "decision": "BLOCKED_CORRELATION",
+        "decision": "WAIT_MSS",
         "details": [
-          "D\u00e9j\u00e0 LONG sur BTC/USD"
+          "Attendu BULLISH_MSS, actuel None"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": "BULLISH_MSS",
+        "mss": null,
         "bias": "LONG"
       },
       {
@@ -348,13 +339,11 @@
         "d1": "BEARISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": "BULLISH_MSS",
+        "mss": null,
         "bias": "LONG"
       }
     ],
-    "actions": [
-      "OUVERT LONG BTC/USD"
-    ],
+    "actions": [],
     "status": "ANALYZED"
   }
 }
