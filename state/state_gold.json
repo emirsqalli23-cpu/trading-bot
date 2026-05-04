@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-04T02:52:05.446985+00:00",
+  "timestamp": "2026-05-04T02:57:04.944964+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-04T02:52:03.125051+00:00",
+    "time": "2026-05-04T02:57:03.547612+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -29,10 +29,15 @@
     "symbols": [
       {
         "symbol": "Or",
-        "decision": "BLOCKED_NEWS",
+        "decision": "WAIT_MSS",
         "details": [
-          "\ud83d\udea8 South Korea's central bank ready to turn hawkish as chip boom masks inflation pr"
-        ]
+          "Attendu BEARISH_MSS, actuel None"
+        ],
+        "d1": "BEARISH",
+        "h4": "BEARISH",
+        "h1": "BEARISH",
+        "mss": null,
+        "bias": "SHORT"
       }
     ],
     "actions": [],
