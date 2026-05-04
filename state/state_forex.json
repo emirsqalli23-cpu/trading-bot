@@ -46,10 +46,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-04T14:41:33.680454+00:00",
+  "timestamp": "2026-05-04T15:22:21.235846+00:00",
   "market": "forex",
   "last_cycle": {
-    "time": "2026-05-04T14:41:30.839916+00:00",
+    "time": "2026-05-04T15:22:17.266462+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -61,7 +61,7 @@
       },
       "killzone": {
         "ok": true,
-        "name": "Killzone NY Open"
+        "name": "Killzone NY mid-session"
       },
       "dxy": {
         "trend": "NEUTRAL"
@@ -73,26 +73,27 @@
     "symbols": [
       {
         "symbol": "EUR/USD",
-        "decision": "TREND_NOT_ALIGNED",
+        "decision": "WAIT_MSS",
         "details": [
-          "H4=BULLISH H1=BEARISH"
+          "Attendu BEARISH_MSS, actuel None"
         ],
         "d1": "NEUTRAL",
-        "h4": "BULLISH",
+        "h4": "BEARISH",
         "h1": "BEARISH",
-        "mss": null
+        "mss": null,
+        "bias": "SHORT"
       },
       {
         "symbol": "GBP/USD",
-        "decision": "WAIT_MSS",
+        "decision": "AGAINST_D1",
         "details": [
-          "Attendu BULLISH_MSS, actuel None"
+          "SHORT contre D1=BULLISH"
         ],
         "d1": "BULLISH",
-        "h4": "BULLISH",
+        "h4": "BEARISH",
         "h1": "BEARISH",
-        "mss": null,
-        "bias": "LONG"
+        "mss": "BEARISH_MSS",
+        "bias": "SHORT"
       }
     ],
     "actions": [],
