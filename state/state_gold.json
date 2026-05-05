@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-05T05:11:32.285860+00:00",
+  "timestamp": "2026-05-05T05:16:38.341566+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-05T05:11:31.165121+00:00",
+    "time": "2026-05-05T05:16:36.620588+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -35,7 +35,7 @@
         ],
         "d1": "BEARISH",
         "h4": "BEARISH",
-        "h1": "BULLISH",
+        "h1": "BEARISH",
         "mss": null,
         "bias": "SHORT"
       }
