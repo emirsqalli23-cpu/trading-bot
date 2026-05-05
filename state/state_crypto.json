@@ -41,10 +41,10 @@
       "news": "Bank of Canada's Macklem backs Fed independence ahead of Powell departure"
     }
   ],
-  "timestamp": "2026-05-05T12:58:54.713563+00:00",
+  "timestamp": "2026-05-05T13:03:58.383088+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-05T12:58:50.536587+00:00",
+    "time": "2026-05-05T13:03:55.021736+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -62,39 +62,50 @@
     "symbols": [
       {
         "symbol": "BTC/USD",
-        "decision": "WAIT_MSS",
+        "decision": "RR_TOO_LOW",
         "details": [
-          "Attendu BULLISH_MSS, actuel None"
+          "R:R 0.41 < 2.0"
         ],
         "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": null,
-        "bias": "LONG"
-      },
-      {
-        "symbol": "ETH/USD",
-        "decision": "WAIT_MSS",
-        "details": [
-          "Attendu BULLISH_MSS, actuel None"
-        ],
-        "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": null,
-        "bias": "LONG"
-      },
-      {
-        "symbol": "SOL/USD",
-        "decision": "AGAINST_D1",
-        "details": [
-          "LONG contre D1=BEARISH"
-        ],
-        "d1": "BEARISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
         "mss": "BULLISH_MSS",
-        "bias": "LONG"
+        "bias": "LONG",
+        "cot": "NEUTRAL",
+        "adx": 34.2,
+        "regime": "TRENDING",
+        "rr": 0.41
+      },
+      {
+        "symbol": "ETH/USD",
+        "decision": "RR_TOO_LOW",
+        "details": [
+          "R:R 0.47 < 2.0"
+        ],
+        "d1": "BULLISH",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": "BULLISH_MSS",
+        "bias": "LONG",
+        "cot": "NEUTRAL",
+        "adx": 27.5,
+        "regime": "TRENDING",
+        "rr": 0.47
+      },
+      {
+        "symbol": "SOL/USD",
+        "decision": "BLOCKED_RANGE",
+        "details": [
+          "ADX=12.6 (march\u00e9 plat)"
+        ],
+        "d1": "NEUTRAL",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": "BULLISH_MSS",
+        "bias": "LONG",
+        "cot": "NEUTRAL",
+        "adx": 12.6,
+        "regime": "RANGE"
       }
     ],
     "actions": [],
