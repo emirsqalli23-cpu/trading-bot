@@ -1,18 +1,18 @@
 {
-  "capital": 927.64,
+  "capital": 956.12,
   "positions": {
     "XBTUSD": {
       "direction": "LONG",
       "entry": 78267.0,
-      "sl": 78267.0,
+      "sl": 79458.7,
       "initial_sl": 77104.8278,
-      "tp1": 80597.2,
+      "tp1": 81762.29999999999,
       "rr1": 2.01,
-      "risk_amount": 18.93,
+      "risk_amount": 9.46,
       "initial_risk_amount": 18.93,
       "be_set": true,
-      "tp1_taken": false,
-      "trail_active": false,
+      "tp1_taken": true,
+      "trail_active": true,
       "open_time": "2026-05-04T14:26:06.975776+00:00",
       "chart_candles": [
         {
@@ -262,7 +262,8 @@
           "ok": true,
           "detail": "TRENDING ADX=30.4"
         }
-      ]
+      ],
+      "trail_high": 80650.4
     }
   },
   "trades": [
@@ -290,12 +291,18 @@
       "pnl": 5.38,
       "time": "2026-05-03T23:02:41.283548+00:00",
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
+    },
+    {
+      "symbol": "BTC/USD",
+      "type": "TP_PARTIAL",
+      "pnl": 19.02,
+      "time": "2026-05-05T02:42:54.992324+00:00"
     }
   ],
-  "timestamp": "2026-05-05T02:37:54.894923+00:00",
+  "timestamp": "2026-05-05T02:42:58.748109+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-05T02:37:51.826025+00:00",
+    "time": "2026-05-05T02:42:54.083410+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -303,7 +310,7 @@
       },
       "daily_loss": {
         "ok": true,
-        "pct": 0.0
+        "pct": 1.9
       },
       "killzone": {
         "ok": true,
