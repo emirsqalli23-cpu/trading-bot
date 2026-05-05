@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-05T12:04:16.856022+00:00",
+  "timestamp": "2026-05-05T12:09:23.777599+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-05T12:04:16.024882+00:00",
+    "time": "2026-05-05T12:09:21.975301+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -29,15 +29,10 @@
     "symbols": [
       {
         "symbol": "Or",
-        "decision": "WAIT_MSS",
+        "decision": "BLOCKED_NEWS",
         "details": [
-          "Attendu BEARISH_MSS, actuel None"
-        ],
-        "d1": "BEARISH",
-        "h4": "BEARISH",
-        "h1": "BULLISH",
-        "mss": null,
-        "bias": "SHORT"
+          "\ud83d\udea8 The Trading Awards: Nominations Still Open: Don't Miss Your Window"
+        ]
       }
     ],
     "actions": [],
