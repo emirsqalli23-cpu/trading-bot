@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-05T10:59:14.638039+00:00",
+  "timestamp": "2026-05-05T11:04:19.826380+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-05T10:59:14.637960+00:00",
+    "time": "2026-05-05T11:04:19.826313+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -17,7 +17,7 @@
       },
       "killzone": {
         "ok": false,
-        "name": "hors zone (10h UTC)"
+        "name": "hors zone (11h UTC)"
       }
     },
     "symbols": [],
