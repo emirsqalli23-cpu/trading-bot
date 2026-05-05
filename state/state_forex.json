@@ -46,10 +46,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-05T19:50:25.660352+00:00",
+  "timestamp": "2026-05-05T19:55:28.061087+00:00",
   "market": "forex",
   "last_cycle": {
-    "time": "2026-05-05T19:50:20.026280+00:00",
+    "time": "2026-05-05T19:55:25.244483+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -73,18 +73,15 @@
     "symbols": [
       {
         "symbol": "EUR/USD",
-        "decision": "BLOCKED_RANGE",
+        "decision": "WAIT_MSS",
         "details": [
-          "ADX=13.8 (march\u00e9 plat)"
+          "Attendu BEARISH_MSS, actuel None"
         ],
         "d1": "NEUTRAL",
         "h4": "BEARISH",
         "h1": "BEARISH",
-        "mss": "BEARISH_MSS",
-        "bias": "SHORT",
-        "cot": "NEUTRAL",
-        "adx": 13.8,
-        "regime": "RANGE"
+        "mss": null,
+        "bias": "SHORT"
       },
       {
         "symbol": "GBP/USD",
@@ -95,7 +92,7 @@
         "d1": "BULLISH",
         "h4": "BEARISH",
         "h1": "BEARISH",
-        "mss": "BEARISH_MSS",
+        "mss": null,
         "bias": "SHORT"
       }
     ],
