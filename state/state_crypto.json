@@ -41,10 +41,10 @@
       "news": "Bank of Canada's Macklem backs Fed independence ahead of Powell departure"
     }
   ],
-  "timestamp": "2026-05-05T22:11:36.331995+00:00",
+  "timestamp": "2026-05-05T23:16:59.197274+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-05T22:11:36.331924+00:00",
+    "time": "2026-05-05T23:16:59.197160+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -56,7 +56,7 @@
       },
       "killzone": {
         "ok": false,
-        "name": "hors zone (22h UTC)"
+        "name": "hors zone (23h UTC)"
       }
     },
     "symbols": [],
