@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-05T13:00:18.776505+00:00",
+  "timestamp": "2026-05-05T13:05:19.062757+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-05T13:00:10.055758+00:00",
+    "time": "2026-05-05T13:05:18.199091+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -29,10 +29,15 @@
     "symbols": [
       {
         "symbol": "Or",
-        "decision": "BLOCKED_NEWS",
+        "decision": "WAIT_MSS",
         "details": [
-          "\ud83d\udea8 Sec of War Hegseth: Ceasefire is not over"
-        ]
+          "Attendu BEARISH_MSS, actuel None"
+        ],
+        "d1": "BEARISH",
+        "h4": "BEARISH",
+        "h1": "BULLISH",
+        "mss": null,
+        "bias": "SHORT"
       }
     ],
     "actions": [],
