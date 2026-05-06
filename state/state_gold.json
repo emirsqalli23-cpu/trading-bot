@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-06T12:14:09.544280+00:00",
+  "timestamp": "2026-05-06T12:19:12.261906+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-06T12:14:07.676427+00:00",
+    "time": "2026-05-06T12:19:09.421279+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -29,15 +29,10 @@
     "symbols": [
       {
         "symbol": "Or",
-        "decision": "AGAINST_D1",
+        "decision": "BLOCKED_NEWS",
         "details": [
-          "LONG contre D1=BEARISH"
-        ],
-        "d1": "BEARISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": "BEARISH_MSS",
-        "bias": "LONG"
+          "\ud83d\udea8 The USD is sharply lower as hopes for an end to the war push oil lower/yields lo"
+        ]
       }
     ],
     "actions": [],
