@@ -46,10 +46,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-06T08:35:27.338098+00:00",
+  "timestamp": "2026-05-06T08:40:36.664804+00:00",
   "market": "forex",
   "last_cycle": {
-    "time": "2026-05-06T08:35:25.510197+00:00",
+    "time": "2026-05-06T08:40:33.456597+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -73,26 +73,26 @@
     "symbols": [
       {
         "symbol": "EUR/USD",
-        "decision": "BLOCKED_YIELDS",
+        "decision": "WAIT_MSS",
         "details": [
-          "Yields haussiers (US 10Y monte) bloque LONG"
+          "Attendu BULLISH_MSS, actuel None"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": "BULLISH_MSS",
+        "mss": null,
         "bias": "LONG"
       },
       {
         "symbol": "GBP/USD",
-        "decision": "BLOCKED_YIELDS",
+        "decision": "WAIT_MSS",
         "details": [
-          "Yields haussiers (US 10Y monte) bloque LONG"
+          "Attendu BULLISH_MSS, actuel None"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": "BULLISH_MSS",
+        "mss": null,
         "bias": "LONG"
       }
     ],
