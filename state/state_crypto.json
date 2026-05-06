@@ -41,10 +41,10 @@
       "news": "Bank of Canada's Macklem backs Fed independence ahead of Powell departure"
     }
   ],
-  "timestamp": "2026-05-06T08:32:48.636216+00:00",
+  "timestamp": "2026-05-06T08:37:54.212993+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-06T08:32:45.101900+00:00",
+    "time": "2026-05-06T08:37:49.419213+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -74,25 +74,21 @@
       },
       {
         "symbol": "ETH/USD",
-        "decision": "RR_TOO_LOW",
+        "decision": "WAIT_MSS",
         "details": [
-          "R:R 0.8 < 2.0"
+          "Attendu BULLISH_MSS, actuel None"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": "BULLISH_MSS",
-        "bias": "LONG",
-        "cot": "NEUTRAL",
-        "adx": 28.3,
-        "regime": "TRENDING",
-        "rr": 0.8
+        "mss": null,
+        "bias": "LONG"
       },
       {
         "symbol": "SOL/USD",
         "decision": "RR_TOO_LOW",
         "details": [
-          "R:R 1.18 < 2.0"
+          "R:R 1.25 < 2.0"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
@@ -100,9 +96,9 @@
         "mss": "BULLISH_MSS",
         "bias": "LONG",
         "cot": "NEUTRAL",
-        "adx": 22.8,
+        "adx": 22.9,
         "regime": "NEUTRAL",
-        "rr": 1.18
+        "rr": 1.25
       }
     ],
     "actions": [],
