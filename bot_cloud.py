@@ -56,6 +56,15 @@ IG_ENABLED = os.environ.get("IG_ENABLED", "false").lower() == "true"
 IG_DRY_RUN = os.environ.get("IG_DRY_RUN", "true").lower() != "false"
 IG_ENV     = os.environ.get("IG_ENV", "live")
 
+# ── Conditions réelles de trading (spread + slippage simulés) ─────────────
+try:
+    from real_costs import apply_realistic_entry, apply_realistic_exit, get_spread_value
+    REAL_COSTS_OK = True
+except Exception as _e:
+    print(f"⚠️ Real costs indisponible : {_e}")
+    REAL_COSTS_OK = False
+REAL_COSTS_ENABLED = os.environ.get("REAL_COSTS_ENABLED", "true").lower() == "true"
+
 # ── CONFIG GLOBALE ────────────────────────────────────────────────────────
 MARKET        = os.environ.get("MARKET", "crypto").lower()
 CAPITAL_START = 1000.0
@@ -71,8 +80,12 @@ if MARKET == "gold":
     SYMBOLS, SYMBOLS_NICE = ["GC=F"], {"GC=F": "Or"}
     DATA_SOURCE, LABEL, EMOJI = "yahoo", "OR", "🥇"
 elif MARKET == "forex":
-    SYMBOLS = ["EURUSD=X", "GBPUSD=X"]
-    SYMBOLS_NICE = {"EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD"}
+    # 4 paires : 2 majors USD + 2 cross JPY (non affectées par DXY/yields)
+    SYMBOLS = ["EURUSD=X", "GBPUSD=X", "EURJPY=X", "GBPJPY=X"]
+    SYMBOLS_NICE = {
+        "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD",
+        "EURJPY=X": "EUR/JPY", "GBPJPY=X": "GBP/JPY",
+    }
     DATA_SOURCE, LABEL, EMOJI = "yahoo", "FOREX", "💱"
 else:
     MARKET = "crypto"
@@ -650,15 +663,20 @@ def run():
                 if dxy != "NEUTRAL":
                     print(f"  ✓ DXY confirme : {why_dxy}")
 
-                # Filtre US 10Y Yields (or + forex)
-                ok_y, why_y = yields_aligned(sym, bias, yields)
+                # Filtre US 10Y Yields — mode SOFT par défaut
+                # Si yields contredisent : on laisse passer mais on réduit la mise -40%
+                ok_y, why_y, yields_factor = yields_aligned(sym, bias, yields, mode="soft")
                 if not ok_y:
+                    # En mode hard ce serait un blocage, en soft ça n'arrive jamais sauf paire non-supportée
                     print(f"🏦 {nice} bloqué : {why_y}")
                     sym_log["decision"] = "BLOCKED_YIELDS"
                     sym_log["details"].append(why_y)
                     cycle_log["symbols"].append(sym_log)
                     continue
-                if yields != "NEUTRAL":
+                if yields_factor < 1.0:
+                    print(f"  ⚠️ {why_y}")
+                    sym_log.setdefault("warnings",[]).append(why_y)
+                elif yields != "NEUTRAL":
                     print(f"  ✓ Yields confirment : {why_y}")
 
             # Filtre COT (sentiment institutionnel — futures CFTC)
@@ -714,6 +732,24 @@ def run():
                 risk_amount = adjust_risk_by_atr(base_risk, atr_now, avg_atr)
                 if risk_amount != base_risk:
                     print(f"📏 ATR ajustement : risque {base_risk}$ → {risk_amount}$")
+
+            # Application du yields_factor (mode soft : -40% si yields contredisent)
+            if MARKET in ("forex","gold") and 'yields_factor' in dir():
+                try:
+                    if yields_factor < 1.0:
+                        before = risk_amount
+                        risk_amount = round(risk_amount * yields_factor, 2)
+                        print(f"   📉 Mise réduite par yields-soft : {before}€ → {risk_amount}€")
+                except NameError: pass
+
+            # Conditions réelles : applique spread + slippage à l'entrée
+            quoted_entry = plan["entry"]
+            if REAL_COSTS_OK and REAL_COSTS_ENABLED:
+                real_entry = apply_realistic_entry(sym, plan["direction"], quoted_entry)
+                if real_entry != quoted_entry:
+                    diff = abs(real_entry - quoted_entry)
+                    print(f"   💱 Prix réel (spread+slippage) : {quoted_entry:.5f} → {real_entry:.5f} (Δ {diff:.5f})")
+                plan["entry"] = real_entry
 
             capital -= risk_amount
 

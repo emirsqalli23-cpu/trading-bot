@@ -513,25 +513,34 @@ def fetch_10y_yield_trend():
         print(f"  ↪ 10Y yield fetch KO: {e}")
         return "NEUTRAL"
 
-def yields_aligned(symbol, direction, yields_trend):
+def yields_aligned(symbol, direction, yields_trend, mode="soft"):
     """
     Le trade est-il aligné avec la tendance des yields US 10Y ?
-    NEUTRAL → laisse passer (pas de signal contradictoire).
 
-    Logique INVERSE :
-    - LONG Or/EUR/USD : on veut yields qui baissent → BEARISH OK, BULLISH bloque
-    - SHORT          : on veut yields qui montent → BULLISH OK, BEARISH bloque
+    Modes :
+    - "hard" (ancien) : bloque le trade si yields contredisent
+    - "soft" (NOUVEAU défaut) : laisse passer mais demande de réduire la mise
+      → renvoie (True, message) toujours, plus un risk_factor (0.5 = -50%)
+
+    Pourquoi soft ? Les yields sont un signal MACRO de fond, pas un veto à court
+    terme. Bloquer tous les LONGs quand yields montent = passer à côté de
+    nombreuses opportunités techniques valides (ICT MSS).
     """
-    if yields_trend == "NEUTRAL": return True, "Yields neutres"
+    if yields_trend == "NEUTRAL": return True, "Yields neutres", 1.0
     rel = YIELDS_AFFECTED.get(symbol)
-    if not rel: return True, "Yields non applicable"
+    if not rel: return True, "Yields non applicable", 1.0
 
     if rel == "INVERSE":
-        if direction == "LONG"  and yields_trend == "BULLISH":
-            return False, f"Yields haussiers (US 10Y monte) bloque LONG"
-        if direction == "SHORT" and yields_trend == "BEARISH":
-            return False, f"Yields baissiers (US 10Y baisse) bloque SHORT"
-    return True, f"Yields {yields_trend} compatible"
+        contradicts = (
+            (direction == "LONG"  and yields_trend == "BULLISH") or
+            (direction == "SHORT" and yields_trend == "BEARISH")
+        )
+        if contradicts:
+            if mode == "hard":
+                return False, f"Yields {yields_trend} contredisent {direction}", 0.0
+            # mode soft : on laisse passer mais on réduit la mise de 40%
+            return True, f"⚠️ Yields {yields_trend} contredisent — mise réduite -40%", 0.6
+    return True, f"Yields {yields_trend} compatible", 1.0
 
 def cot_aligned(direction, cot_trend):
     """
