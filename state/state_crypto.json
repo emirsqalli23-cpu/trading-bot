@@ -41,10 +41,10 @@
       "news": "Bank of Canada's Macklem backs Fed independence ahead of Powell departure"
     }
   ],
-  "timestamp": "2026-05-06T08:48:00.568884+00:00",
+  "timestamp": "2026-05-06T08:53:09.230312+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-06T08:47:56.325804+00:00",
+    "time": "2026-05-06T08:53:05.601819+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -62,33 +62,9 @@
     "symbols": [
       {
         "symbol": "BTC/USD",
-        "decision": "WAIT_MSS",
-        "details": [
-          "Attendu BULLISH_MSS, actuel None"
-        ],
-        "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": null,
-        "bias": "LONG"
-      },
-      {
-        "symbol": "ETH/USD",
-        "decision": "WAIT_MSS",
-        "details": [
-          "Attendu BULLISH_MSS, actuel None"
-        ],
-        "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": null,
-        "bias": "LONG"
-      },
-      {
-        "symbol": "SOL/USD",
         "decision": "RR_TOO_LOW",
         "details": [
-          "R:R 1.3 < 2.0"
+          "R:R 0.29 < 2.0"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
@@ -96,9 +72,41 @@
         "mss": "BULLISH_MSS",
         "bias": "LONG",
         "cot": "NEUTRAL",
-        "adx": 23.0,
+        "adx": 36.1,
+        "regime": "TRENDING",
+        "rr": 0.29
+      },
+      {
+        "symbol": "ETH/USD",
+        "decision": "RR_TOO_LOW",
+        "details": [
+          "R:R 0.8 < 2.0"
+        ],
+        "d1": "BULLISH",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": "BULLISH_MSS",
+        "bias": "LONG",
+        "cot": "NEUTRAL",
+        "adx": 28.7,
+        "regime": "TRENDING",
+        "rr": 0.8
+      },
+      {
+        "symbol": "SOL/USD",
+        "decision": "RR_TOO_LOW",
+        "details": [
+          "R:R 1.43 < 2.0"
+        ],
+        "d1": "BULLISH",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": "BULLISH_MSS",
+        "bias": "LONG",
+        "cot": "NEUTRAL",
+        "adx": 23.2,
         "regime": "NEUTRAL",
-        "rr": 1.3
+        "rr": 1.43
       }
     ],
     "actions": [],
