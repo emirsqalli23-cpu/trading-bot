@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-06T13:46:19.646535+00:00",
+  "timestamp": "2026-05-06T13:51:31.714833+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-06T13:46:18.666711+00:00",
+    "time": "2026-05-06T13:51:29.896708+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -29,14 +29,14 @@
     "symbols": [
       {
         "symbol": "Or",
-        "decision": "WAIT_MSS",
+        "decision": "BLOCKED_YIELDS",
         "details": [
-          "Attendu BULLISH_MSS, actuel None"
+          "Yields haussiers (US 10Y monte) bloque LONG"
         ],
         "d1": "NEUTRAL",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": null,
+        "mss": "BULLISH_MSS",
         "bias": "LONG"
       }
     ],
