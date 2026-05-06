@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-06T06:55:33.584354+00:00",
+  "timestamp": "2026-05-06T07:00:34.460872+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-06T06:55:33.584286+00:00",
+    "time": "2026-05-06T07:00:32.015794+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -16,12 +16,31 @@
         "pct": 0.0
       },
       "killzone": {
-        "ok": false,
-        "name": "hors zone (6h UTC)"
+        "ok": true,
+        "name": "Killzone Londres Open"
+      },
+      "dxy": {
+        "trend": "NEUTRAL"
+      },
+      "yields_10y": {
+        "trend": "BULLISH"
       }
     },
-    "symbols": [],
+    "symbols": [
+      {
+        "symbol": "Or",
+        "decision": "AGAINST_D1",
+        "details": [
+          "LONG contre D1=BEARISH"
+        ],
+        "d1": "BEARISH",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": null,
+        "bias": "LONG"
+      }
+    ],
     "actions": [],
-    "status": "WAIT_KILLZONE"
+    "status": "ANALYZED"
   }
 }
