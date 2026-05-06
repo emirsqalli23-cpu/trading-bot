@@ -12,7 +12,8 @@
 // │  5. Tap sur le widget → ouvre le chat                              │
 // └──────────────────────────────────────────────────────────────────┘
 
-const REPO = "emirsqalli23-cpu/trading-bot";
+const REPO          = "emirsqalli23-cpu/trading-bot";
+const DASHBOARD_URL = "https://emirsqalli23-cpu.github.io/trading-bot/";
 const GEMINI_API_KEY = "AIzaSyBewLDvtuS4miaMDRRTr-dqsi708WkoPEg";
 const GEMINI_MODEL   = "gemini-2.5-flash";
 
@@ -288,8 +289,8 @@ async function buildWidget() {
   w.backgroundGradient = grad;
   w.setPadding(14, 14, 14, 14);
 
-  // URL pour relancer le script en interactif au tap
-  w.url = `scriptable:///run/${encodeURIComponent(Script.name())}`;
+  // Tap sur le widget → ouvre le Dashboard (chat interactif disponible là-bas)
+  w.url = DASHBOARD_URL;
 
   const head = w.addStack();
   head.layoutHorizontally();
@@ -328,7 +329,7 @@ async function buildWidget() {
 
   w.addSpacer();
 
-  const cta = w.addText("💬 Tap pour discuter");
+  const cta = w.addText("💬 Tap → Dashboard + Chat IA");
   cta.font = Font.boldSystemFont(11);
   cta.textColor = C_GOLD;
 

@@ -349,6 +349,84 @@
     text-align: center; padding: 6px; user-select: none;
   }
   .hidden { display: none; }
+
+  /* ═══ CHAT INTERACTIF ═══ */
+  .chat-toggle-btn {
+    position: fixed; bottom: 16px; right: 96px; z-index: 1002;
+    background: #2563eb; color: white; border: none;
+    padding: 8px 14px; border-radius: 20px; font-size: 0.8em;
+    font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(37,99,235,0.5);
+    transition: all 0.2s; white-space: nowrap;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .chat-toggle-btn:hover { transform: scale(1.05); background: #1d4ed8; }
+  .chat-toggle-btn.active { background: #475569; }
+
+  .chat-panel {
+    position: fixed; bottom: 110px; right: 16px; z-index: 1001;
+    width: min(300px, calc(100vw - 24px));
+    background: #1e293b; border-radius: 14px;
+    border: 1px solid #3b82f6; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    padding: 12px; transition: all 0.3s ease;
+    transform-origin: bottom right;
+  }
+  .chat-panel.hidden { opacity: 0; pointer-events: none; transform: scale(0.85); }
+
+  .chat-header {
+    font-size: 0.82em; font-weight: 700; color: #93c5fd;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 5px;
+  }
+  .chat-history {
+    max-height: 220px; overflow-y: auto; margin-bottom: 8px;
+    font-size: 0.78em; line-height: 1.4;
+    scrollbar-width: thin; scrollbar-color: #334155 transparent;
+  }
+  .chat-msg {
+    padding: 6px 8px; border-radius: 8px; margin-bottom: 6px;
+  }
+  .chat-msg.user {
+    background: #1e3a8a; color: #bfdbfe; margin-left: 12px;
+    border-bottom-right-radius: 2px;
+  }
+  .chat-msg.bot {
+    background: #2c3540; color: #e2e8f0; margin-right: 12px;
+    border-bottom-left-radius: 2px;
+  }
+  .chat-msg.thinking {
+    background: #2c3540; color: #94a3b8; font-style: italic;
+    animation: thinkPulse 1s ease-in-out infinite;
+  }
+  @keyframes thinkPulse { 0%,100%{opacity:0.7} 50%{opacity:1} }
+
+  .chat-suggestions {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px;
+  }
+  .chat-sug {
+    background: #1e3a5f; color: #93c5fd; border: 1px solid #1e40af;
+    border-radius: 12px; padding: 4px 10px; font-size: 0.73em;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .chat-sug:hover { background: #1e40af; }
+
+  .chat-input-row {
+    display: flex; gap: 6px; align-items: center;
+  }
+  .chat-input {
+    flex: 1; background: #0f1419; border: 1px solid #334155;
+    color: #e6e9ec; border-radius: 8px; padding: 8px 10px;
+    font-size: 0.82em; outline: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .chat-input:focus { border-color: #3b82f6; }
+  .chat-send-btn {
+    background: #3b82f6; color: white; border: none;
+    width: 34px; height: 34px; border-radius: 8px;
+    cursor: pointer; font-size: 1.1em; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .chat-send-btn:hover { background: #2563eb; }
+  .chat-send-btn:disabled { background: #334155; cursor: default; }
 </style>
 </head>
 <body>
@@ -374,6 +452,29 @@
 </div>
 
 <div id="content"></div>
+
+<!-- Bouton chat flottant -->
+<button class="chat-toggle-btn" id="chatToggleBtn" onclick="toggleChat()">💬 Demande-moi</button>
+
+<!-- Panel de chat interactif -->
+<div class="chat-panel hidden" id="chatPanel">
+  <div class="chat-header">🤖 Pose une question sur ton bot</div>
+  <div class="chat-suggestions" id="chatSuggestions">
+    <span class="chat-sug" onclick="askSuggestion(this)">Comment va le bot ?</span>
+    <span class="chat-sug" onclick="askSuggestion(this)">Pourquoi pas de trade ?</span>
+    <span class="chat-sug" onclick="askSuggestion(this)">Positions ouvertes ?</span>
+    <span class="chat-sug" onclick="askSuggestion(this)">Contexte macro ?</span>
+    <span class="chat-sug" onclick="askSuggestion(this)">C'est risqué ?</span>
+  </div>
+  <div class="chat-history" id="chatHistory"></div>
+  <div class="chat-input-row">
+    <input class="chat-input" id="chatInput" type="text"
+           placeholder="Tape ta question..."
+           maxlength="300"
+           onkeydown="if(event.key==='Enter')sendChat()" />
+    <button class="chat-send-btn" id="chatSendBtn" onclick="sendChat()">➤</button>
+  </div>
+</div>
 
 <!-- Robot mascotte animé -->
 <div class="robot-mascot clickable" id="robotMascot" onclick="robotClick()">
@@ -1406,14 +1507,181 @@ function spawnStars() {
 }
 
 function robotClick() {
-  // Tap = ré-affiche immédiatement le statut actuel du bot
-  refreshRobot();
+  toggleChat();
 }
 
 // Première humeur après chargement initial des states
 setTimeout(refreshRobot, 1500);
 // Re-check toutes les 30s (synchro avec loadAll)
 setInterval(refreshRobot, 30000);
+
+// ═══════ CHAT INTERACTIF — Gemini AI ═══════
+const GEMINI_API_KEY = "AIzaSyBewLDvtuS4miaMDRRTr-dqsi708WkoPEg";
+const GEMINI_MODEL   = "gemini-2.5-flash";
+let chatHistory = [];
+let chatOpen = false;
+
+function toggleChat() {
+  const panel = document.getElementById("chatPanel");
+  const btn   = document.getElementById("chatToggleBtn");
+  chatOpen = !chatOpen;
+  if (chatOpen) {
+    panel.classList.remove("hidden");
+    btn.classList.add("active");
+    btn.textContent = "✕ Fermer";
+    document.getElementById("chatInput").focus();
+  } else {
+    panel.classList.add("hidden");
+    btn.classList.remove("active");
+    btn.textContent = "💬 Demande-moi";
+  }
+}
+
+function buildChatContext() {
+  let ctx = "ÉTAT ACTUEL DU BOT TRADING — données live :\n\n";
+  for (const [market, s] of Object.entries(states)) {
+    if (!s) { ctx += `${market} : indisponible\n`; continue; }
+    const cap = s.capital;
+    const pnl = cap - 1000;
+    const trades = s.trades || [];
+    const wins = trades.filter(t => t.pnl > 0).length;
+    const wr = trades.length ? Math.round(100 * wins / trades.length) : 0;
+    const pos = s.positions || {};
+    ctx += `🔸 ${market.toUpperCase()}\n`;
+    ctx += `   Capital : ${cap.toFixed(0)}€ (PnL ${pnl >= 0 ? "+" : ""}${pnl.toFixed(0)}€)\n`;
+    ctx += `   Trades : ${trades.length} | WR : ${wr}% | Positions : ${Object.keys(pos).length}\n`;
+    for (const [sym, p] of Object.entries(pos)) {
+      ctx += `      • ${sym} ${p.direction} entrée=${p.entry?.toFixed(4)} SL=${p.sl?.toFixed(4)} TP=${p.tp1?.toFixed(4)}\n`;
+      if (p.be_set)       ctx += `        [Breakeven actif]\n`;
+      if (p.tp1_taken)    ctx += `        [50% TP pris]\n`;
+      if (p.trail_active) ctx += `        [Trailing actif]\n`;
+    }
+    const last5 = trades.slice(-5);
+    if (last5.length) {
+      ctx += `   Derniers trades :\n`;
+      for (const t of last5) {
+        ctx += `      ${t.time?.slice(0,16)} ${t.symbol} ${t.type} ${t.pnl >= 0 ? "+" : ""}${Math.round(t.pnl)}€\n`;
+      }
+    }
+    const lc = s.last_cycle;
+    if (lc) {
+      ctx += `   Dernier cycle : ${lc.time?.slice(0,16)} → ${lc.status}\n`;
+      if (lc.checks?.killzone) ctx += `      Killzone : ${lc.checks.killzone.ok ? "active" : "off"} (${lc.checks.killzone.name || ""})\n`;
+      if (lc.checks?.dxy)     ctx += `      DXY : ${lc.checks.dxy.trend}\n`;
+      if (lc.symbols?.length) {
+        for (const x of lc.symbols) {
+          ctx += `      [${x.symbol}] ${x.decision}`;
+          if (x.details?.length) ctx += ` — ${x.details.join(" · ").slice(0, 100)}`;
+          ctx += `\n`;
+        }
+      }
+    }
+    ctx += "\n";
+  }
+  return ctx;
+}
+
+function addChatMessage(role, text) {
+  const history = document.getElementById("chatHistory");
+  const div = document.createElement("div");
+  div.className = `chat-msg ${role}`;
+  div.textContent = text;
+  history.appendChild(div);
+  history.scrollTop = history.scrollHeight;
+  return div;
+}
+
+async function sendChat() {
+  const input  = document.getElementById("chatInput");
+  const sendBtn = document.getElementById("chatSendBtn");
+  const msg = input.value.trim();
+  if (!msg || sendBtn.disabled) return;
+
+  // Hide suggestions after first message
+  document.getElementById("chatSuggestions").style.display = "none";
+
+  input.value = "";
+  sendBtn.disabled = true;
+  addChatMessage("user", msg);
+
+  const thinkEl = addChatMessage("thinking", "🤔 Je réfléchis...");
+
+  // Robot en mode travail
+  setRobotMood("working", { title: "🤔 En train de réfléchir...", explain: msg, time: "" });
+
+  try {
+    const systemPrompt = `Tu es l'assistant pédagogique du bot trading de Souhir (alias Emir).
+
+RÈGLES :
+- Souhir n'est PAS trader pro, il apprend. Explique TOUS les termes techniques simplement.
+- Réponds TOUJOURS en français.
+- Sois CONCIS (max 6-8 lignes — c'est sur mobile).
+- Utilise des emojis (📊 💰 ✅ ❌ 🛡️ 🎯 📈 📉).
+- Si tu ne sais pas, dis-le clairement.
+
+GLOSSAIRE :
+- LONG = acheter (parie que ça monte) | SHORT = vendre (parie que ça baisse)
+- SL = Stop Loss = filet de sécurité auto | TP = Take Profit = objectif de gain
+- Breakeven = SL remonté à l'entrée → ne peut plus perdre
+- Killzone = heures où les banques tradent (Londres 7-10h, NY 12-15h, NY PM 18-20h)
+- MSS = Market Structure Shift = signal d'entrée ICT
+
+${buildChatContext()}`;
+
+    const contents = [];
+    contents.push({ role: "user",  parts: [{ text: systemPrompt }] });
+    contents.push({ role: "model", parts: [{ text: "OK Souhir, je suis prêt ! Pose-moi tes questions 🤖" }] });
+    for (const h of chatHistory) {
+      contents.push({ role: h.role, parts: [{ text: h.text }] });
+    }
+    contents.push({ role: "user", parts: [{ text: msg }] });
+
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents, generationConfig: { temperature: 0.5, maxOutputTokens: 1000 } })
+      }
+    );
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "(Pas de réponse)";
+
+    chatHistory.push({ role: "user",  text: msg });
+    chatHistory.push({ role: "model", text: answer });
+    if (chatHistory.length > 16) chatHistory.splice(0, 4);
+
+    thinkEl.remove();
+    addChatMessage("bot", answer);
+
+    // Robot affiche la réponse dans sa bulle
+    setRobotMood("idle", {
+      title: "🤖 " + answer.split("\n")[0].slice(0, 60),
+      explain: answer.split("\n").slice(1).join(" ").slice(0, 150),
+      time: `À propos : "${msg.slice(0, 40)}${msg.length > 40 ? "…" : ""}"`
+    });
+    clearTimeout(robotBubbleTimeout);
+    robotBubbleTimeout = setTimeout(() => {
+      const bubble = document.getElementById("robotBubble");
+      if (bubble) bubble.style.opacity = "0";
+    }, 25000);
+
+  } catch(e) {
+    thinkEl.remove();
+    addChatMessage("bot", `❌ Erreur : ${e.message}`);
+    setRobotMood("idle", { title: "❌ Oups", explain: e.message, time: "" });
+  }
+
+  sendBtn.disabled = false;
+  document.getElementById("chatInput").focus();
+}
+
+function askSuggestion(el) {
+  document.getElementById("chatInput").value = el.textContent;
+  sendChat();
+}
 </script>
 </body>
 </html>
