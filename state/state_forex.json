@@ -46,10 +46,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-06T14:56:45.574208+00:00",
+  "timestamp": "2026-05-06T15:02:04.176451+00:00",
   "market": "forex",
   "last_cycle": {
-    "time": "2026-05-06T14:56:43.011016+00:00",
+    "time": "2026-05-06T15:01:53.749123+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -61,7 +61,7 @@
       },
       "killzone": {
         "ok": true,
-        "name": "Killzone NY Open"
+        "name": "Killzone NY mid-session"
       },
       "dxy": {
         "trend": "NEUTRAL"
