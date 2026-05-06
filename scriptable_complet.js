@@ -1,38 +1,33 @@
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  TRADING BOT — Widget Scriptable iOS                             ║
-// ║  Version complète : capital + statut + tap → Dashboard + Chat IA ║
+// ║  TRADING BOT — Widget Scriptable iOS (v2 avec cache)             ║
+// ║  Capital + statut + tap → Dashboard + Chat IA                    ║
 // ║                                                                    ║
-// ║  INSTALLATION (3 minutes)                                          ║
-// ║  ─────────────────────────                                         ║
-// ║  1. App Store → installer "Scriptable" (gratuit)                   ║
-// ║  2. Ouvrir Scriptable → bouton "+" en haut → Coller CE script      ║
-// ║  3. En haut, renommer le script : "Trading Bot"                    ║
-// ║  4. Sur l'écran d'accueil iPhone :                                 ║
-// ║       - Appui long sur l'écran                                     ║
-// ║       - Bouton "+" en haut à gauche                                ║
-// ║       - Chercher "Scriptable"                                      ║
-// ║       - Choisir taille MEDIUM ou LARGE                             ║
-// ║       - "Ajouter le widget"                                        ║
-// ║  5. Tap sur le widget → "Edit Widget" → Script: "Trading Bot"      ║
-// ║       → When Interacting: "Open URL" → Done                        ║
-// ║  6. Tap sur le widget → ouvre ton Dashboard avec le chat IA 🤖     ║
+// ║  Si le widget timeout, c'est que GitHub raw rame.                 ║
+// ║  Cette version garde un cache local : même si le fetch échoue,    ║
+// ║  le widget affiche les dernières données connues.                 ║
+// ║                                                                    ║
+// ║  INSTALLATION                                                      ║
+// ║  1. Scriptable → "+" → Coller ce code → Renommer "Trading Bot"     ║
+// ║  2. Écran d'accueil → appui long → "+" → Scriptable                ║
+// ║     → taille MEDIUM ou LARGE → Ajouter                             ║
+// ║  3. Tap widget → "Edit Widget" → Script: "Trading Bot" → Done     ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-// ═══ CONFIG ═══
 const REPO          = "emirsqalli23-cpu/trading-bot";
 const DASHBOARD_URL = "https://emirsqalli23-cpu.github.io/trading-bot/";
 const CAP_START     = 1000;
+const TIMEOUT_S     = 6;       // 6s max par requête (sinon cache)
 
 // ═══ COULEURS ═══
-const C_BG_TOP   = new Color("#1e3a8a");
-const C_BG_BOT   = new Color("#0a0e14");
-const C_POS      = new Color("#22c55e");
-const C_NEG      = new Color("#ef4444");
-const C_NEU      = new Color("#94a3b8");
-const C_TEXT     = new Color("#e6e9ec");
-const C_LABEL    = new Color("#94a3b8");
-const C_CARD     = new Color("#1a2027");
-const C_GOLD     = new Color("#fbbf24");
+const C_BG_TOP = new Color("#1e3a8a");
+const C_BG_BOT = new Color("#0a0e14");
+const C_POS    = new Color("#22c55e");
+const C_NEG    = new Color("#ef4444");
+const C_NEU    = new Color("#94a3b8");
+const C_TEXT   = new Color("#e6e9ec");
+const C_LABEL  = new Color("#94a3b8");
+const C_CARD   = new Color("#1a2027");
+const C_GOLD   = new Color("#fbbf24");
 
 const MARKETS = [
   { key: "crypto", emoji: "🪙", label: "Crypto" },
@@ -40,54 +35,98 @@ const MARKETS = [
   { key: "forex",  emoji: "💱", label: "Forex" },
 ];
 
-// ═══ FETCH ═══
-async function fetchState(market) {
+// ═══ CACHE LOCAL (FileManager) ═══
+const fm = FileManager.local();
+const CACHE_DIR = fm.joinPath(fm.documentsDirectory(), "tradingbot-cache");
+if (!fm.fileExists(CACHE_DIR)) fm.createDirectory(CACHE_DIR, true);
+
+function cacheRead(name) {
+  const p = fm.joinPath(CACHE_DIR, name + ".json");
+  if (!fm.fileExists(p)) return null;
+  try { return JSON.parse(fm.readString(p)); } catch { return null; }
+}
+function cacheWrite(name, data) {
+  try {
+    const p = fm.joinPath(CACHE_DIR, name + ".json");
+    fm.writeString(p, JSON.stringify(data));
+  } catch {}
+}
+
+// ═══ FETCH avec fallback cache ═══
+async function fetchStateCached(market) {
   try {
     const url = `https://raw.githubusercontent.com/${REPO}/main/state/state_${market}.json?t=${Date.now()}`;
     const r = new Request(url);
-    r.timeoutInterval = 10;
-    return await r.loadJSON();
-  } catch { return null; }
+    r.timeoutInterval = TIMEOUT_S;
+    const data = await r.loadJSON();
+    cacheWrite("state_" + market, data);
+    return data;
+  } catch {
+    return cacheRead("state_" + market);
+  }
 }
 
-async function fetchFearGreed() {
+async function fetchFearGreedCached() {
   try {
     const r = new Request("https://api.alternative.me/fng/?limit=1");
-    r.timeoutInterval = 8;
+    r.timeoutInterval = 5;
     const d = await r.loadJSON();
-    return { value: parseInt(d.data[0].value), label: d.data[0].value_classification };
-  } catch { return null; }
+    const out = { value: parseInt(d.data[0].value), label: d.data[0].value_classification };
+    cacheWrite("fng", out);
+    return out;
+  } catch {
+    return cacheRead("fng");
+  }
 }
 
 // ═══ HELPERS ═══
-function colorForPnl(pnl) {
-  if (pnl > 0.5)  return C_POS;
-  if (pnl < -0.5) return C_NEG;
-  return C_NEU;
-}
-function fmt(n) { return (n >= 0 ? "+" : "") + Math.round(n); }
+function colorForPnl(p) { return p > 0.5 ? C_POS : p < -0.5 ? C_NEG : C_NEU; }
+function fmtN(n) { return (n >= 0 ? "+" : "") + Math.round(n); }
 function pct(n) { return ((n / CAP_START) * 100).toFixed(1) + "%"; }
 function howAgo(iso) {
   if (!iso) return "?";
-  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 60)    return Math.floor(diff) + "s";
-  if (diff < 3600)  return Math.floor(diff / 60) + "m";
-  if (diff < 86400) return Math.floor(diff / 3600) + "h";
-  return Math.floor(diff / 86400) + "j";
+  const d = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (d < 60)    return Math.floor(d) + "s";
+  if (d < 3600)  return Math.floor(d / 60) + "m";
+  if (d < 86400) return Math.floor(d / 3600) + "h";
+  return Math.floor(d / 86400) + "j";
 }
-function fearGreedEmoji(v) {
+function fgEmoji(v) {
   if (v == null) return "❓";
-  if (v <= 20)   return "💎";
-  if (v <= 44)   return "😰";
-  if (v <= 55)   return "😐";
-  if (v <= 74)   return "😎";
+  if (v <= 20) return "💎";
+  if (v <= 44) return "😰";
+  if (v <= 55) return "😐";
+  if (v <= 74) return "😎";
   return "🤑";
 }
 
-// ═══ WIDGET BUILDER ═══
+// ═══ WIDGET FALLBACK (en cas d'erreur totale) ═══
+function buildErrorWidget(msg) {
+  const w = new ListWidget();
+  w.url = DASHBOARD_URL;
+  const grad = new LinearGradient();
+  grad.colors = [C_BG_TOP, C_BG_BOT];
+  grad.locations = [0, 1];
+  w.backgroundGradient = grad;
+  w.setPadding(14, 14, 14, 14);
+
+  const t = w.addText("🤖 Trading Bot");
+  t.font = Font.boldSystemFont(14);
+  t.textColor = C_TEXT;
+  w.addSpacer(8);
+  const e = w.addText("⚠️ " + msg);
+  e.font = Font.systemFont(11);
+  e.textColor = C_NEU;
+  w.addSpacer();
+  const cta = w.addText("💬 Tap → Dashboard");
+  cta.font = Font.boldSystemFont(11);
+  cta.textColor = C_GOLD;
+  return w;
+}
+
+// ═══ WIDGET PRINCIPAL ═══
 async function buildWidget() {
   const widget = new ListWidget();
-  // Le tap ouvre le DASHBOARD (avec le chat IA intégré au robot)
   widget.url = DASHBOARD_URL;
 
   const grad = new LinearGradient();
@@ -96,15 +135,15 @@ async function buildWidget() {
   widget.backgroundGradient = grad;
   widget.setPadding(12, 14, 12, 14);
 
-  // Charger en parallèle
+  // Charger en parallèle (chaque fetch a son propre timeout court + cache)
   const [states, fg] = await Promise.all([
-    Promise.all(MARKETS.map(m => fetchState(m.key))),
-    fetchFearGreed(),
+    Promise.all(MARKETS.map(m => fetchStateCached(m.key))),
+    fetchFearGreedCached(),
   ]);
 
   // Calculs globaux
   let totalCap = 0, totalPnl = 0, totalTrades = 0, totalWins = 0;
-  let allOpen = 0, lastTrade = null, lastCycleTime = null, blockedCount = 0;
+  let allOpen = 0, lastTrade = null, lastCycleTime = null;
   states.forEach((s, i) => {
     if (s) {
       totalCap += s.capital;
@@ -119,15 +158,12 @@ async function buildWidget() {
       });
       const lc = s.last_cycle;
       if (lc?.time && (!lastCycleTime || lc.time > lastCycleTime)) lastCycleTime = lc.time;
-      (lc?.symbols || []).forEach(x => {
-        if ((x.decision || "").startsWith("BLOCKED")) blockedCount++;
-      });
     } else {
       totalCap += CAP_START;
     }
   });
   const totalWr = totalTrades ? Math.round(100 * totalWins / totalTrades) : 0;
-  const family = config.widgetFamily;
+  const family = config.widgetFamily || "medium";
 
   // ═══ HEADER ═══
   const head = widget.addStack();
@@ -151,7 +187,7 @@ async function buildWidget() {
 
   const pnlRow = widget.addStack();
   pnlRow.layoutHorizontally();
-  const pnlText = pnlRow.addText(`${fmt(totalPnl)}€ · ${pct(totalPnl * 3)}`);
+  const pnlText = pnlRow.addText(`${fmtN(totalPnl)}€ · ${pct(totalPnl * 3)}`);
   pnlText.font = Font.systemFont(11);
   pnlText.textColor = colorForPnl(totalPnl);
   pnlRow.addSpacer();
@@ -159,7 +195,7 @@ async function buildWidget() {
   wrText.font = Font.systemFont(10);
   wrText.textColor = C_LABEL;
 
-  // ═══ MEDIUM/LARGE : 3 cartes par marché ═══
+  // ═══ MEDIUM/LARGE : 3 cartes ═══
   if (family !== "small") {
     widget.addSpacer(8);
     const row = widget.addStack();
@@ -174,8 +210,7 @@ async function buildWidget() {
       const wins = trades.filter(t => t.pnl > 0).length;
       const wr = trades.length ? Math.round(100 * wins / trades.length) : 0;
       const open = s ? Object.keys(s.positions || {}).length : 0;
-      const lc = s?.last_cycle;
-      const status = lc?.status || "?";
+      const status = s?.last_cycle?.status || "?";
 
       const card = row.addStack();
       card.layoutVertically();
@@ -197,7 +232,7 @@ async function buildWidget() {
       c.font = Font.boldSystemFont(14);
       c.textColor = colorForPnl(pnl);
 
-      const p = card.addText(`${fmt(pnl)}€`);
+      const p = card.addText(`${fmtN(pnl)}€`);
       p.font = Font.systemFont(9);
       p.textColor = colorForPnl(pnl);
 
@@ -213,7 +248,7 @@ async function buildWidget() {
         else if (status === "ANALYZED")    icon = "🔍";
         else if (open > 0)                 icon = "🚀";
 
-        const st = card.addText(`${icon} ${open > 0 ? open + " pos" : "0 pos"}`);
+        const st = card.addText(`${icon} ${open > 0 ? open + " pos" : "0"}`);
         st.font = Font.systemFont(8);
         st.textColor = open > 0 ? C_GOLD : C_LABEL;
       }
@@ -223,7 +258,6 @@ async function buildWidget() {
   // ═══ LARGE : dernière action + macro ═══
   if (family === "large") {
     widget.addSpacer(8);
-
     const actCard = widget.addStack();
     actCard.layoutVertically();
     actCard.backgroundColor = C_CARD;
@@ -236,17 +270,16 @@ async function buildWidget() {
 
     if (lastTrade) {
       const sign = lastTrade.pnl >= 0 ? "+" : "";
-      const typeMap = {
-        "TP": "🎯 TP touché", "TP_PARTIAL": "💰 50% pris",
-        "TP_EXTENDED": "🎯 Objectif final", "TRAIL_EXIT": "🛡️ Trailing",
-        "SL": "❌ SL", "BE": "⚪ Pari nul",
-        "SHOCK_EXIT": "🚨 Sortie news",
+      const map = {
+        "TP": "🎯 TP", "TP_PARTIAL": "💰 50%",
+        "TP_EXTENDED": "🎯 Final", "TRAIL_EXIT": "🛡️ Trail",
+        "SL": "❌ SL", "BE": "⚪ Nul", "SHOCK_EXIT": "🚨 News",
       };
-      const tStr = typeMap[lastTrade.type] || lastTrade.type;
+      const tStr = map[lastTrade.type] || lastTrade.type;
       const at = actCard.addText(`${tStr} sur ${lastTrade.symbol}`);
       at.font = Font.boldSystemFont(11);
       at.textColor = C_TEXT;
-      const ap = actCard.addText(`${sign}${Math.round(lastTrade.pnl)}€ — il y a ${howAgo(lastTrade.time)}`);
+      const ap = actCard.addText(`${sign}${Math.round(lastTrade.pnl)}€ — ${howAgo(lastTrade.time)}`);
       ap.font = Font.systemFont(9);
       ap.textColor = colorForPnl(lastTrade.pnl);
     } else {
@@ -267,7 +300,7 @@ async function buildWidget() {
     fgC.backgroundColor = C_CARD;
     fgC.cornerRadius = 6;
     fgC.setPadding(5, 7, 5, 7);
-    const fgL = fgC.addText(`${fearGreedEmoji(fg?.value)} F&G`);
+    const fgL = fgC.addText(`${fgEmoji(fg?.value)} F&G`);
     fgL.font = Font.boldSystemFont(8);
     fgL.textColor = C_LABEL;
     const fgV = fgC.addText(fg?.value != null ? `${fg.value}/100` : "?");
@@ -277,7 +310,7 @@ async function buildWidget() {
     fgT.font = Font.systemFont(8);
     fgT.textColor = C_LABEL;
 
-    // Macro DXY/Yields
+    // Macro
     const lc = states.find(s => s?.last_cycle)?.last_cycle;
     const mC = macroRow.addStack();
     mC.layoutVertically();
@@ -287,13 +320,11 @@ async function buildWidget() {
     const mL = mC.addText("🌍 Macro");
     mL.font = Font.boldSystemFont(8);
     mL.textColor = C_LABEL;
-    const dxy = lc?.checks?.dxy?.trend || "?";
-    const yld = lc?.checks?.yields_10y?.trend || "?";
     const arr = t => t === "BULLISH" ? "↑" : t === "BEARISH" ? "↓" : "─";
-    const dT = mC.addText(`DXY ${arr(dxy)}`);
+    const dT = mC.addText(`DXY ${arr(lc?.checks?.dxy?.trend)}`);
     dT.font = Font.systemFont(9);
     dT.textColor = C_TEXT;
-    const yT = mC.addText(`Yld ${arr(yld)}`);
+    const yT = mC.addText(`Yld ${arr(lc?.checks?.yields_10y?.trend)}`);
     yT.font = Font.systemFont(9);
     yT.textColor = C_TEXT;
 
@@ -303,14 +334,14 @@ async function buildWidget() {
     kC.backgroundColor = C_CARD;
     kC.cornerRadius = 6;
     kC.setPadding(5, 7, 5, 7);
-    const kL = kC.addText("⏰ Killzone");
+    const kL = kC.addText("⏰ Zone");
     kL.font = Font.boldSystemFont(8);
     kL.textColor = C_LABEL;
     const kAct = lc?.checks?.killzone?.ok;
-    const kS = kC.addText(kAct ? "Active" : "Off");
+    const kS = kC.addText(kAct ? "ON" : "OFF");
     kS.font = Font.boldSystemFont(11);
     kS.textColor = kAct ? C_POS : C_NEU;
-    const kN = kC.addText(lc?.checks?.killzone?.name?.split(" ")[0] || "—");
+    const kN = kC.addText((lc?.checks?.killzone?.name || "—").split(" ")[0]);
     kN.font = Font.systemFont(8);
     kN.textColor = C_LABEL;
   }
@@ -333,11 +364,18 @@ async function buildWidget() {
 }
 
 // ═══ MAIN ═══
-const widget = await buildWidget();
+let widget;
+try {
+  widget = await buildWidget();
+} catch (e) {
+  widget = buildErrorWidget(e.message || "Erreur");
+}
+
 if (config.runsInWidget) {
   Script.setWidget(widget);
 } else {
-  // Si lancé en mode interactif → ouvre directement le dashboard dans Safari
+  // Mode interactif (test depuis Scriptable) : preview + ouvre dashboard
+  await widget.presentLarge();
   Safari.open(DASHBOARD_URL);
 }
 Script.complete();
