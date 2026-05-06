@@ -143,7 +143,7 @@ ${systemContext}`;
   req.headers = { "Content-Type": "application/json" };
   req.body = JSON.stringify({
     contents,
-    generationConfig: { temperature: 0.5, maxOutputTokens: 800 }
+    generationConfig: { temperature: 0.5, maxOutputTokens: 1500 }
   });
   req.timeoutInterval = 30;
 
