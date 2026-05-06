@@ -627,11 +627,13 @@ function showHelp(evt, key) {
 // File d'attente de graphiques à créer après insertion DOM
 let pendingCharts = [];
 let chartCounter = 0;
+let createdCharts = {};  // {containerId: chartInstance} pour éviter doublons et fuites mémoire
 
 // Génère un container pour TradingView Lightweight Charts (rempli après DOM)
-function renderChart(candles, entry, sl, tp, direction, openTime) {
+function renderChart(candles, entry, sl, tp, direction, openTime, symKey) {
   if (!candles || candles.length === 0) return "";
-  const id = "tv-chart-" + (++chartCounter);
+  // ID déterministe basé sur le symbole : évite recréation et "graphique qui disparaît"
+  const id = symKey ? `tv-chart-${symKey.replace(/[^a-z0-9]/gi, '_')}` : "tv-chart-" + (++chartCounter);
   // On stocke les données pour les utiliser après insertion DOM
   pendingCharts.push({ id, candles, entry, sl, tp, direction, openTime });
   const dirLabel = direction === "LONG" ? "📈 ACHAT" : "📉 VENTE";
@@ -665,13 +667,27 @@ function toLwcFormat(candles) {
 // Initialise tous les graphiques en attente après le rendu DOM
 function setupTradingViewCharts() {
   if (typeof LightweightCharts === "undefined") {
-    console.warn("LightweightCharts non chargé");
+    console.warn("LightweightCharts non chargé — retry dans 500ms");
+    setTimeout(setupTradingViewCharts, 500);
     return;
+  }
+  // Détruire les anciens charts dont le container n'existe plus (fuites mémoire)
+  for (const [id, chartInst] of Object.entries(createdCharts)) {
+    if (!document.getElementById(id)) {
+      try { chartInst.remove(); } catch(e) {}
+      delete createdCharts[id];
+    }
   }
   while (pendingCharts.length > 0) {
     const job = pendingCharts.shift();
     const container = document.getElementById(job.id);
-    if (!container) continue;
+    if (!container) {
+      // Container pas encore dans le DOM, ré-essayer après
+      setTimeout(() => { pendingCharts.push(job); setupTradingViewCharts(); }, 100);
+      continue;
+    }
+    // Si chart déjà créé pour ce container, le réutiliser (skip)
+    if (createdCharts[job.id]) continue;
 
     const chart = LightweightCharts.createChart(container, {
       width: container.clientWidth,
@@ -740,9 +756,12 @@ function setupTradingViewCharts() {
 
     chart.timeScale().fitContent();
 
+    // Stocker l'instance pour éviter recréation
+    createdCharts[job.id] = chart;
+
     // Resize responsive
     const resizeObs = new ResizeObserver(() => {
-      chart.applyOptions({ width: container.clientWidth });
+      try { chart.applyOptions({ width: container.clientWidth }); } catch(e) {}
     });
     resizeObs.observe(container);
   }
@@ -945,10 +964,10 @@ function renderMarket(market) {
         openTimeFr = `🕐 Heure d'ouverture inconnue`;
       }
 
-      // Graphique SVG
+      // Graphique SVG (ID déterministe sur sym pour éviter recréation à chaque refresh)
       let chartHtml = "";
       if (candles.length > 0) {
-        chartHtml = renderChart(candles, p.entry, p.sl, p.tp1, p.direction, p.open_time);
+        chartHtml = renderChart(candles, p.entry, p.sl, p.tp1, p.direction, p.open_time, sym);
       }
 
       // Validations checklist (avec aide contextuelle pour chaque terme)

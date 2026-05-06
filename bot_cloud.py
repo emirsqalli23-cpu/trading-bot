@@ -65,6 +65,17 @@ except Exception as _e:
     REAL_COSTS_OK = False
 REAL_COSTS_ENABLED = os.environ.get("REAL_COSTS_ENABLED", "true").lower() == "true"
 
+# ── Signaux sociaux (Fear & Greed + Trump shock detection) ────────────────
+try:
+    from social_signals import (
+        fetch_crypto_fear_greed, fear_greed_signal_for_crypto,
+        detect_market_shock_social,
+    )
+    SOCIAL_OK = True
+except Exception as _e:
+    print(f"⚠️ Social signals indisponible : {_e}")
+    SOCIAL_OK = False
+
 # ── CONFIG GLOBALE ────────────────────────────────────────────────────────
 MARKET        = os.environ.get("MARKET", "crypto").lower()
 CAPITAL_START = 1000.0
@@ -367,6 +378,27 @@ def run():
 
     print(f"[{datetime.now().strftime('%H:%M:%S')}] [{LABEL}] Capital:{capital:.2f}$ | Pos:{list(positions.keys())} | News:{NEWS_OK} | TM:{TM_OK}")
 
+    # ─── 0bis. SHOCK SOCIAL (Trump posts) — fermeture d'urgence ────────
+    if SOCIAL_OK and positions:
+        try:
+            social_shock, social_msg = detect_market_shock_social(60)
+            if social_shock:
+                print(f"🚨 Shock social détecté : {social_msg}")
+                for sym in list(positions.keys()):
+                    pos = positions[sym]
+                    price = get_price(sym)
+                    pnl = pnl_at_price(pos, price)
+                    capital += pos["risk_amount"] + pnl
+                    trades.append({"symbol": SYMBOLS_NICE.get(sym, sym), "type": "TRUMP_SHOCK_EXIT",
+                                   "pnl": pnl, "time": datetime.now(timezone.utc).isoformat(),
+                                   "news": social_msg[:120]})
+                    del positions[sym]
+                    notify(f"🚨 Sortie sociale {SYMBOLS_NICE.get(sym, sym)}",
+                           f"{social_msg[:100]}\nP&L : {pnl:+.0f}€",
+                           priority=5, tags=["rotating_light"])
+        except Exception as e:
+            print(f"⚠️ Social shock check : {e}")
+
     # ─── 0. SHOCK NEWS : sortie d'urgence ─────────────────────────────────
     for sym in list(positions.keys()):
         try:
@@ -519,6 +551,19 @@ def run():
             return
         else:
             print(f"🎯 {kz_name} active — analyse des setups")
+
+    # ─── Fear & Greed crypto : fetch 1× par cycle ─────────────────────────
+    fg = None
+    if SOCIAL_OK and MARKET == "crypto":
+        try:
+            fg = fetch_crypto_fear_greed()
+            cycle_log["checks"]["fear_greed"] = {"value": fg.get("value"), "verdict": fg.get("verdict")}
+            if fg.get("value"):
+                emoji = {"EXTREME_FEAR":"💎","FEAR":"😰","NEUTRAL":"😐",
+                         "GREED":"😎","EXTREME_GREED":"🤑"}.get(fg.get("verdict"), "?")
+                print(f"{emoji} Crypto Fear & Greed : {fg['value']}/100 ({fg['label']})")
+        except Exception as e:
+            print(f"⚠️ Fear & Greed : {e}")
 
     # ─── DXY Confluence : fetch 1× par cycle pour or + forex ─────────────
     dxy = "NEUTRAL"
@@ -741,6 +786,17 @@ def run():
                         risk_amount = round(risk_amount * yields_factor, 2)
                         print(f"   📉 Mise réduite par yields-soft : {before}€ → {risk_amount}€")
                 except NameError: pass
+
+            # Application Fear & Greed crypto (signal contrarien)
+            if MARKET == "crypto" and SOCIAL_OK and fg and fg.get("value"):
+                ok_fg, msg_fg, fg_factor = fear_greed_signal_for_crypto(fg, plan["direction"])
+                if fg_factor != 1.0:
+                    before = risk_amount
+                    risk_amount = round(risk_amount * fg_factor, 2)
+                    arrow = "↑ +" if fg_factor > 1 else "↓ -"
+                    print(f"   {arrow}{abs(fg_factor-1)*100:.0f}% Fear&Greed : {before}€ → {risk_amount}€")
+                    print(f"      → {msg_fg}")
+                    sym_log.setdefault("fg_factor", fg_factor)
 
             # Conditions réelles : applique spread + slippage à l'entrée
             quoted_entry = plan["entry"]
