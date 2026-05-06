@@ -41,10 +41,10 @@
       "news": "Bank of Canada's Macklem backs Fed independence ahead of Powell departure"
     }
   ],
-  "timestamp": "2026-05-06T01:12:52.783162+00:00",
+  "timestamp": "2026-05-06T01:18:03.641239+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-06T01:12:49.402680+00:00",
+    "time": "2026-05-06T01:17:57.682525+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -62,38 +62,50 @@
     "symbols": [
       {
         "symbol": "BTC/USD",
-        "decision": "WAIT_MSS",
+        "decision": "RR_TOO_LOW",
         "details": [
-          "Attendu BULLISH_MSS, actuel None"
+          "R:R 0.29 < 2.0"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": null,
-        "bias": "LONG"
+        "mss": "BULLISH_MSS",
+        "bias": "LONG",
+        "cot": "NEUTRAL",
+        "adx": 35.4,
+        "regime": "TRENDING",
+        "rr": 0.29
       },
       {
         "symbol": "ETH/USD",
-        "decision": "TREND_NOT_ALIGNED",
+        "decision": "RR_TOO_LOW",
         "details": [
-          "H4=BULLISH H1=BEARISH"
-        ],
-        "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BEARISH",
-        "mss": null
-      },
-      {
-        "symbol": "SOL/USD",
-        "decision": "WAIT_MSS",
-        "details": [
-          "Attendu BULLISH_MSS, actuel None"
+          "R:R 0.43 < 2.0"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": null,
-        "bias": "LONG"
+        "mss": "BULLISH_MSS",
+        "bias": "LONG",
+        "cot": "NEUTRAL",
+        "adx": 28.1,
+        "regime": "TRENDING",
+        "rr": 0.43
+      },
+      {
+        "symbol": "SOL/USD",
+        "decision": "BLOCKED_RANGE",
+        "details": [
+          "ADX=17.5 (march\u00e9 plat)"
+        ],
+        "d1": "BULLISH",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": "BULLISH_MSS",
+        "bias": "LONG",
+        "cot": "NEUTRAL",
+        "adx": 17.5,
+        "regime": "RANGE"
       }
     ],
     "actions": [],
