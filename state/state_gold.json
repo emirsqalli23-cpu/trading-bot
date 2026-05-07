@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-07T05:34:09.869116+00:00",
+  "timestamp": "2026-05-07T06:19:14.633723+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-07T05:34:08.150858+00:00",
+    "time": "2026-05-07T06:19:14.633634+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -16,38 +16,12 @@
         "pct": 0.0
       },
       "killzone": {
-        "ok": true,
-        "name": "Killzone Asie Or (Shanghai)"
-      },
-      "dxy": {
-        "trend": "NEUTRAL"
-      },
-      "yields_10y": {
-        "trend": "BULLISH"
+        "ok": false,
+        "name": "hors zone (6h UTC)"
       }
     },
-    "symbols": [
-      {
-        "symbol": "Or",
-        "decision": "RR_TOO_LOW",
-        "details": [
-          "R:R 1.67 < 2.0"
-        ],
-        "d1": "NEUTRAL",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": "BULLISH_MSS",
-        "bias": "LONG",
-        "warnings": [
-          "\u26a0\ufe0f Yields BULLISH contredisent \u2014 mise r\u00e9duite -40%"
-        ],
-        "cot": "BULLISH",
-        "adx": 35.8,
-        "regime": "TRENDING",
-        "rr": 1.67
-      }
-    ],
+    "symbols": [],
     "actions": [],
-    "status": "ANALYZED"
+    "status": "WAIT_KILLZONE"
   }
 }
