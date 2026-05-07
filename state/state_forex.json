@@ -46,10 +46,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-07T08:01:14.657853+00:00",
+  "timestamp": "2026-05-07T08:06:18.469172+00:00",
   "market": "forex",
   "last_cycle": {
-    "time": "2026-05-07T08:01:06.723102+00:00",
+    "time": "2026-05-07T08:06:14.790182+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -73,15 +73,10 @@
     "symbols": [
       {
         "symbol": "EUR/USD",
-        "decision": "WAIT_MSS",
+        "decision": "BLOCKED_NEWS",
         "details": [
-          "Attendu BULLISH_MSS, actuel None"
-        ],
-        "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": null,
-        "bias": "LONG"
+          "\ud83d\udea8 ECB policymaker Villeroy urges against speculating on timing of potential rate h"
+        ]
       },
       {
         "symbol": "GBP/USD",
@@ -97,15 +92,10 @@
       },
       {
         "symbol": "EUR/JPY",
-        "decision": "WAIT_MSS",
+        "decision": "BLOCKED_NEWS",
         "details": [
-          "Attendu BEARISH_MSS, actuel None"
-        ],
-        "d1": "BEARISH",
-        "h4": "BEARISH",
-        "h1": "BULLISH",
-        "mss": null,
-        "bias": "SHORT"
+          "\ud83d\udea8 ECB policymaker Villeroy urges against speculating on timing of potential rate h"
+        ]
       },
       {
         "symbol": "GBP/JPY",
