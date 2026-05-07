@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-07T03:12:48.488430+00:00",
+  "timestamp": "2026-05-07T03:17:54.244459+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-07T03:12:47.251646+00:00",
+    "time": "2026-05-07T03:17:52.369950+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -29,10 +29,15 @@
     "symbols": [
       {
         "symbol": "Or",
-        "decision": "BLOCKED_NEWS",
+        "decision": "WAIT_MSS",
         "details": [
-          "\ud83d\udea8 Trump advisers fear political price of Iran war fuel costs ahead of midterms"
-        ]
+          "Attendu BULLISH_MSS, actuel None"
+        ],
+        "d1": "NEUTRAL",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": null,
+        "bias": "LONG"
       }
     ],
     "actions": [],
