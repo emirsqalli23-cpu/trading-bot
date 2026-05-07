@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-07T09:36:51.816055+00:00",
+  "timestamp": "2026-05-07T09:42:00.711986+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-07T09:36:50.099278+00:00",
+    "time": "2026-05-07T09:41:58.788499+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -29,10 +29,15 @@
     "symbols": [
       {
         "symbol": "Or",
-        "decision": "BLOCKED_NEWS",
+        "decision": "WAIT_MSS",
         "details": [
-          "\ud83d\udea8 Japan has to be mindful of further interventions amid IMF warning - Credit Agric"
-        ]
+          "Attendu BULLISH_MSS, actuel None"
+        ],
+        "d1": "NEUTRAL",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": null,
+        "bias": "LONG"
       }
     ],
     "actions": [],
