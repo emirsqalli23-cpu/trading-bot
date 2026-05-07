@@ -41,10 +41,10 @@
       "news": "Bank of Canada's Macklem backs Fed independence ahead of Powell departure"
     }
   ],
-  "timestamp": "2026-05-07T06:56:26.991076+00:00",
+  "timestamp": "2026-05-07T07:01:37.935187+00:00",
   "market": "crypto",
   "last_cycle": {
-    "time": "2026-05-07T06:56:26.991007+00:00",
+    "time": "2026-05-07T07:01:31.796934+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -55,12 +55,57 @@
         "pct": 0.0
       },
       "killzone": {
-        "ok": false,
-        "name": "hors zone (6h UTC)"
+        "ok": true,
+        "name": "Killzone Londres Open"
+      },
+      "fear_greed": {
+        "value": 47,
+        "verdict": "NEUTRAL"
       }
     },
-    "symbols": [],
+    "symbols": [
+      {
+        "symbol": "BTC/USD",
+        "decision": "RR_TOO_LOW",
+        "details": [
+          "R:R 0.85 < 2.0"
+        ],
+        "d1": "BULLISH",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": "BULLISH_MSS",
+        "bias": "LONG",
+        "cot": "NEUTRAL",
+        "adx": 37.0,
+        "regime": "TRENDING",
+        "rr": 0.85
+      },
+      {
+        "symbol": "ETH/USD",
+        "decision": "AGAINST_D1",
+        "details": [
+          "SHORT contre D1=BULLISH"
+        ],
+        "d1": "BULLISH",
+        "h4": "BEARISH",
+        "h1": "BEARISH",
+        "mss": "BULLISH_MSS",
+        "bias": "SHORT"
+      },
+      {
+        "symbol": "SOL/USD",
+        "decision": "WAIT_MSS",
+        "details": [
+          "Attendu BULLISH_MSS, actuel None"
+        ],
+        "d1": "BULLISH",
+        "h4": "BULLISH",
+        "h1": "BULLISH",
+        "mss": null,
+        "bias": "LONG"
+      }
+    ],
     "actions": [],
-    "status": "WAIT_KILLZONE"
+    "status": "ANALYZED"
   }
 }
