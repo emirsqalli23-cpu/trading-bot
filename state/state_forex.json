@@ -46,10 +46,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-07T09:58:55.838029+00:00",
+  "timestamp": "2026-05-07T10:04:00.710836+00:00",
   "market": "forex",
   "last_cycle": {
-    "time": "2026-05-07T09:58:52.141184+00:00",
+    "time": "2026-05-07T10:04:00.710767+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -60,65 +60,12 @@
         "pct": 0.0
       },
       "killzone": {
-        "ok": true,
-        "name": "Killzone Londres Open"
-      },
-      "dxy": {
-        "trend": "NEUTRAL"
-      },
-      "yields_10y": {
-        "trend": "BULLISH"
+        "ok": false,
+        "name": "hors zone (10h UTC)"
       }
     },
-    "symbols": [
-      {
-        "symbol": "EUR/USD",
-        "decision": "WAIT_MSS",
-        "details": [
-          "Attendu BULLISH_MSS, actuel None"
-        ],
-        "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": null,
-        "bias": "LONG"
-      },
-      {
-        "symbol": "GBP/USD",
-        "decision": "WAIT_MSS",
-        "details": [
-          "Attendu BULLISH_MSS, actuel None"
-        ],
-        "d1": "BULLISH",
-        "h4": "BULLISH",
-        "h1": "BULLISH",
-        "mss": null,
-        "bias": "LONG"
-      },
-      {
-        "symbol": "EUR/JPY",
-        "decision": "TREND_NOT_ALIGNED",
-        "details": [
-          "H4=BEARISH H1=BULLISH"
-        ],
-        "d1": "NEUTRAL",
-        "h4": "BEARISH",
-        "h1": "BULLISH",
-        "mss": null
-      },
-      {
-        "symbol": "GBP/JPY",
-        "decision": "TREND_NOT_ALIGNED",
-        "details": [
-          "H4=BEARISH H1=BULLISH"
-        ],
-        "d1": "NEUTRAL",
-        "h4": "BEARISH",
-        "h1": "BULLISH",
-        "mss": null
-      }
-    ],
+    "symbols": [],
     "actions": [],
-    "status": "ANALYZED"
+    "status": "WAIT_KILLZONE"
   }
 }
