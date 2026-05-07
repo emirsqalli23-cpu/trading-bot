@@ -46,10 +46,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-07T09:43:36.488603+00:00",
+  "timestamp": "2026-05-07T09:48:44.903597+00:00",
   "market": "forex",
   "last_cycle": {
-    "time": "2026-05-07T09:43:30.594064+00:00",
+    "time": "2026-05-07T09:48:41.646332+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -73,22 +73,15 @@
     "symbols": [
       {
         "symbol": "EUR/USD",
-        "decision": "RR_TOO_LOW",
+        "decision": "WAIT_MSS",
         "details": [
-          "R:R 0.89 < 1.8"
+          "Attendu BULLISH_MSS, actuel None"
         ],
         "d1": "BULLISH",
         "h4": "BULLISH",
         "h1": "BULLISH",
-        "mss": "BULLISH_MSS",
-        "bias": "LONG",
-        "warnings": [
-          "\u26a0\ufe0f Yields BULLISH contredisent \u2014 mise r\u00e9duite -40%"
-        ],
-        "cot": "NEUTRAL",
-        "adx": 34.0,
-        "regime": "TRENDING",
-        "rr": 0.89
+        "mss": null,
+        "bias": "LONG"
       },
       {
         "symbol": "GBP/USD",
@@ -104,17 +97,25 @@
       },
       {
         "symbol": "EUR/JPY",
-        "decision": "BLOCKED_NEWS",
+        "decision": "TREND_NOT_ALIGNED",
         "details": [
-          "\ud83d\udea8 The Bank of Japan is back in the yen market"
-        ]
+          "H4=BEARISH H1=BULLISH"
+        ],
+        "d1": "NEUTRAL",
+        "h4": "BEARISH",
+        "h1": "BULLISH",
+        "mss": null
       },
       {
         "symbol": "GBP/JPY",
-        "decision": "BLOCKED_NEWS",
+        "decision": "TREND_NOT_ALIGNED",
         "details": [
-          "\ud83d\udea8 The Bank of Japan is back in the yen market"
-        ]
+          "H4=BEARISH H1=BULLISH"
+        ],
+        "d1": "NEUTRAL",
+        "h4": "BEARISH",
+        "h1": "BULLISH",
+        "mss": null
       }
     ],
     "actions": [],
