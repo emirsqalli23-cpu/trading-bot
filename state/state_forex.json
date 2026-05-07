@@ -46,10 +46,10 @@
       "news": "Fed's Kashkari refuses to rule out rate hikes as Iran conflict stokes inflation"
     }
   ],
-  "timestamp": "2026-05-07T09:33:26.216298+00:00",
+  "timestamp": "2026-05-07T09:38:30.487072+00:00",
   "market": "forex",
   "last_cycle": {
-    "time": "2026-05-07T09:33:22.634555+00:00",
+    "time": "2026-05-07T09:38:25.158626+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -99,14 +99,14 @@
         "symbol": "EUR/JPY",
         "decision": "BLOCKED_NEWS",
         "details": [
-          "\ud83d\udea8 Japan has to be mindful of further interventions amid IMF warning - Credit Agric"
+          "\ud83d\udea8 The Bank of Japan is back in the yen market"
         ]
       },
       {
         "symbol": "GBP/JPY",
         "decision": "BLOCKED_NEWS",
         "details": [
-          "\ud83d\udea8 Japan has to be mindful of further interventions amid IMF warning - Credit Agric"
+          "\ud83d\udea8 The Bank of Japan is back in the yen market"
         ]
       }
     ],
