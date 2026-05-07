@@ -2,10 +2,10 @@
   "capital": 1000.0,
   "positions": {},
   "trades": [],
-  "timestamp": "2026-05-07T06:34:18.850461+00:00",
+  "timestamp": "2026-05-07T07:09:32.011775+00:00",
   "market": "gold",
   "last_cycle": {
-    "time": "2026-05-07T06:34:18.850377+00:00",
+    "time": "2026-05-07T07:09:31.023311+00:00",
     "checks": {
       "session": {
         "ok": true,
@@ -16,12 +16,26 @@
         "pct": 0.0
       },
       "killzone": {
-        "ok": false,
-        "name": "hors zone (6h UTC)"
+        "ok": true,
+        "name": "Killzone Londres Open"
+      },
+      "dxy": {
+        "trend": "NEUTRAL"
+      },
+      "yields_10y": {
+        "trend": "BULLISH"
       }
     },
-    "symbols": [],
+    "symbols": [
+      {
+        "symbol": "Or",
+        "decision": "BLOCKED_NEWS",
+        "details": [
+          "\ud83d\udea8 Gold rebounds strongly as hope for the end of the war returns. What's next?"
+        ]
+      }
+    ],
     "actions": [],
-    "status": "WAIT_KILLZONE"
+    "status": "ANALYZED"
   }
 }
